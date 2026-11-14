@@ -1,0 +1,36 @@
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+build/
+*.tsbuildinfo
+.vite/
+
+# Entorno
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Tests / cobertura
+coverage/
+.vitest/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Sistema operativo / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# Persistencia local (SQLite)
+*.sqlite
+*.sqlite3
+*.db

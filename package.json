@@ -1,0 +1,25 @@
+{
+  "name": "orbitalab-mdl",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OrbitaLab: MDL Edition - NASA Space Apps Challenge 2026 (Pacha Team)",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "dev": "concurrently -n server,client -c cyan,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "build": "npm run build -w server && npm run build -w client",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
+    "test": "npm run test -w server",
+    "start": "npm run start -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
