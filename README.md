@@ -39,6 +39,31 @@ npm test             # tests del backend (Vitest)
 
 Variables de entorno: copia `.env.example` a `.env` si necesitas cambiar puertos u orígenes.
 
+## Backend API y recursos NASA
+
+El backend entrega los catálogos locales por HTTP:
+
+- `GET /health`
+- `GET /api/catalogs`
+- `GET /api/missions` y `GET /api/missions/:missionId`
+- `GET /api/modules?category=EST|SCI|COM`
+- `GET /api/ground-stations`
+- `GET /api/nasa/resources`
+- `GET /api/flight/config`
+
+La sincronización de partidas usa Socket.io: `room:create`, `room:join`, `room:start`,
+`role:select`, `design:propose_module`, `design:vote`, `mission:launch` y `flight:action`.
+Durante el vuelo, `flight:tick_asym` se emite individualmente según el rol del jugador.
+
+La página de recursos del [desafío Space Mission Design Game de NASA](https://www.spaceappschallenge.org/2026/challenges/space-mission-design-game/?tab=resources)
+ofrece documentación, herramientas y visualizadores (como GMAT, Mission Viz y el Mission
+Design Lab); no publica un endpoint de API de NASA para estos catálogos. Por eso el juego
+sirve sus escenarios y módulos desde `data/*.json` y muestra los recursos oficiales en
+`/api/nasa/resources`. Los costos, masas, potencias y capacidades son valores didácticos
+de balance, no especificaciones certificadas por NASA. Las rutas 2D del vuelo son
+trayectorias esquemáticas del juego, no efemérides ni telemetría real; no deben presentarse
+como datos de ingeniería de NASA.
+
 ## Estructura y responsables
 
 ```text

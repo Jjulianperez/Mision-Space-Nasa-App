@@ -1,0 +1,52 @@
+{
+  "durationSeconds": 75,
+  "tickIntervalMs": 1000,
+  "crisisProgressPercent": 40,
+  "crisisActEndPercent": 45,
+  "baseFuelPercent": 100,
+  "fuelConsumptionPercentPerProgress": 0.82,
+  "baseTemperatureC": 18,
+  "temperatureRiseCPerMassPercent": 0.18,
+  "temperatureRiseCAtFullProgress": 16,
+  "integrityLossPerStructuralRisk": 0.35,
+  "trajectoryByOrbit": {
+    "LEO": [
+      { "progress": 0, "x": 8, "y": 52 },
+      { "progress": 25, "x": 28, "y": 22 },
+      { "progress": 50, "x": 52, "y": 12 },
+      { "progress": 75, "x": 76, "y": 28 },
+      { "progress": 100, "x": 94, "y": 50 }
+    ],
+    "SSO": [
+      { "progress": 0, "x": 8, "y": 52 },
+      { "progress": 25, "x": 28, "y": 22 },
+      { "progress": 50, "x": 52, "y": 12 },
+      { "progress": 75, "x": 76, "y": 28 },
+      { "progress": 100, "x": 94, "y": 50 }
+    ],
+    "LUNAR": [
+      { "progress": 0, "x": 8, "y": 52 },
+      { "progress": 25, "x": 28, "y": 42 },
+      { "progress": 50, "x": 50, "y": 24 },
+      { "progress": 75, "x": 74, "y": 40 },
+      { "progress": 100, "x": 92, "y": 52 }
+    ],
+    "DEEP_SPACE": [
+      { "progress": 0, "x": 8, "y": 52 },
+      { "progress": 25, "x": 28, "y": 60 },
+      { "progress": 50, "x": 50, "y": 34 },
+      { "progress": 75, "x": 74, "y": 22 },
+      { "progress": 100, "x": 94, "y": 45 }
+    ]
+  },
+  "scoreWeights": {
+    "science": 50,
+    "data": 30,
+    "operations": 20
+  },
+  "outcomeThresholds": {
+    "success": 80,
+    "partial": 50
+  },
+  "modelNote": "Los valores de combustible, temperatura, integridad y las rutas 2D son índices simplificados para el juego; no constituyen una simulación física ni trayectorias oficiales de vuelo."
+}

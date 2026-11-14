@@ -1,1 +1,50 @@
-{}
+[
+  {
+    "id": "leo-earth-observation",
+    "title": "Observación de la Tierra",
+    "orbitType": "LEO",
+    "budgetMillions": 1500,
+    "maxLauncherMassKg": 900,
+    "targetSciencePoints": 45,
+    "requiredDownlinkRatio": 0.75,
+    "groundStationId": "leo-ground-station",
+    "realNasaReference": {
+      "missionName": "PUNCH",
+      "summary": "Misión de heliofísica que observa el viento solar desde una constelación en órbita terrestre baja.",
+      "engineeringLesson": "Coordinar múltiples plataformas y combinar observaciones para estudiar un fenómeno a gran escala.",
+      "sourceUrl": "https://science.nasa.gov/mission/punch/"
+    }
+  },
+  {
+    "id": "lunar-surface-survey",
+    "title": "Cartografía Lunar",
+    "orbitType": "LUNAR",
+    "budgetMillions": 3000,
+    "maxLauncherMassKg": 1800,
+    "targetSciencePoints": 70,
+    "requiredDownlinkRatio": 0.65,
+    "groundStationId": "deep-space-ground-station",
+    "realNasaReference": {
+      "missionName": "Lunar Reconnaissance Orbiter",
+      "summary": "Orbitador de NASA que caracteriza la Luna y produce datos para ciencia y exploración.",
+      "engineeringLesson": "El diseño orbital, los instrumentos y las comunicaciones deben responder conjuntamente a los objetivos de la misión.",
+      "sourceUrl": "https://science.nasa.gov/mission/lro/"
+    }
+  },
+  {
+    "id": "deep-space-explorer",
+    "title": "Exploración del Espacio Profundo",
+    "orbitType": "DEEP_SPACE",
+    "budgetMillions": 4500,
+    "maxLauncherMassKg": 2200,
+    "targetSciencePoints": 85,
+    "requiredDownlinkRatio": 0.5,
+    "groundStationId": "deep-space-ground-station",
+    "realNasaReference": {
+      "missionName": "Dawn",
+      "summary": "Misión interplanetaria de NASA que exploró Vesta y Ceres usando propulsión iónica.",
+      "engineeringLesson": "El uso eficiente de propulsión y energía hace posibles trayectorias prolongadas y objetivos múltiples.",
+      "sourceUrl": "https://science.nasa.gov/mission/dawn/"
+    }
+  }
+]

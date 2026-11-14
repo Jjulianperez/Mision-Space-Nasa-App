@@ -1,0 +1,44 @@
+[
+  {
+    "id": "science-mission-design",
+    "title": "Design and Develop Science Missions",
+    "url": "https://www.nasa.gov/wp-content/uploads/2025/04/250323-design-and-develop-science-mission.pdf",
+    "description": "Recurso de NASA sobre necesidad científica, requisitos, diseño, verificación e implementación de misiones."
+  },
+  {
+    "id": "gmat",
+    "title": "General Mission Analysis Tool",
+    "url": "https://software.nasa.gov/software/GSC-19468-1",
+    "description": "Herramienta de NASA para diseñar, analizar y visualizar trayectorias y conceptos de misión."
+  },
+  {
+    "id": "concept-maturity-levels",
+    "title": "Concept Maturity Levels",
+    "url": "https://dataverse.jpl.nasa.gov/dataset.xhtml?persistentId=hdl:2014/44299",
+    "description": "Marco de JPL para evaluar la madurez progresiva de un concepto de misión."
+  },
+  {
+    "id": "mission-design-lab",
+    "title": "Mission Design Lab",
+    "url": "https://etd.gsfc.nasa.gov/capabilities/integrated-design-center/mission-design-lab/",
+    "description": "Entorno colaborativo de NASA para evaluar conceptos, riesgos y alternativas de arquitectura."
+  },
+  {
+    "id": "mission-viz",
+    "title": "NASA Mission Viz",
+    "url": "https://nasa.github.io/mission-viz/",
+    "description": "Visualizador web de conceptos y trayectorias de misión."
+  },
+  {
+    "id": "webb-telescope-game",
+    "title": "A Learning Game About Telescopes",
+    "url": "https://science.nasa.gov/mission/webb/game-build-it-yourself/",
+    "description": "Juego educativo de NASA sobre objetivos científicos, instrumentos y decisiones de diseño."
+  },
+  {
+    "id": "cubesat-101",
+    "title": "CubeSat 101",
+    "url": "https://www3.nasa.gov/sites/default/files/atoms/files/nasa_csli_cubesat_101_508.pdf",
+    "description": "Guía introductoria de NASA para desarrolladores de misiones CubeSat."
+  }
+]

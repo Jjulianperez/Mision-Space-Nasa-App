@@ -1,1 +1,62 @@
-{}
+[
+  {
+    "id": "power-drop",
+    "title": "Caída de tensión",
+    "trigger": "POWER_DEFICIT",
+    "severity": "HIGH",
+    "description": "La demanda eléctrica supera la generación disponible durante la fase crítica.",
+    "rootCause": "La arquitectura consumía más potencia de la que generaba.",
+    "recommendation": "Desactivar temporalmente un instrumento o mejorar el margen de generación antes de otra misión.",
+    "puzzle": {
+      "id": "power-reset",
+      "role": "PROPULSION",
+      "prompt": "Restaura el bus eléctrico: ingresa RESET-POWER.",
+      "answer": "RESET-POWER"
+    }
+  },
+  {
+    "id": "structural-stress",
+    "title": "Estrés estructural en Max-Q",
+    "trigger": "STRUCTURAL_STRESS",
+    "severity": "HIGH",
+    "description": "La masa de la nave supera el 90% del límite del lanzador y aumenta el riesgo estructural.",
+    "rootCause": "El diseño dejó poco margen de masa para el ascenso.",
+    "recommendation": "Reducir masa o elegir una configuración con más margen estructural.",
+    "puzzle": {
+      "id": "structure-check",
+      "role": "PROPULSION",
+      "prompt": "Confirma la inspección de la estructura: ingresa STRUCTURE-OK.",
+      "answer": "STRUCTURE-OK"
+    }
+  },
+  {
+    "id": "low-downlink",
+    "title": "Ventana de bajada limitada",
+    "trigger": "LOW_DOWNLINK",
+    "severity": "MEDIUM",
+    "description": "La capacidad de enlace puede dejar parte de los datos científicos sin recuperar.",
+    "rootCause": "La capacidad de bajada era baja frente al volumen de datos generado.",
+    "recommendation": "Aumentar capacidad de antena o reducir la generación de datos.",
+    "puzzle": {
+      "id": "link-calibration",
+      "role": "SCIENCE",
+      "prompt": "Calibra el enlace científico: ingresa LINK-LOCK.",
+      "answer": "LINK-LOCK"
+    }
+  },
+  {
+    "id": "nominal-operations",
+    "title": "Ajuste de navegación",
+    "trigger": "NOMINAL",
+    "severity": "LOW",
+    "description": "La nave requiere una corrección menor antes de iniciar las operaciones científicas.",
+    "rootCause": "No se detectó una debilidad crítica en la telemetría de diseño.",
+    "recommendation": "Mantener el seguimiento de trayectoria y conservar el margen operativo.",
+    "puzzle": {
+      "id": "navigation-check",
+      "role": "PROPULSION",
+      "prompt": "Confirma el ajuste de navegación: ingresa NAV-OK.",
+      "answer": "NAV-OK"
+    }
+  }
+]
