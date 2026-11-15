@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   BarChart3,
@@ -100,7 +100,6 @@ function TopBar() {
 
 // ---- Left Column ----
 function LeftColumn({ onOpen }: { onOpen: (v: 'EST' | 'SCI' | 'COM' | 'debate') => void }) {
-  const modules = useDesignStore(s => s.modules);
   const selectedModules = useDesignStore(s => s.selectedModules);
   const activeVote = useDesignStore(s => s.activeVote);
   const myRole = useDesignStore(s => s.myRole);
@@ -142,9 +141,8 @@ function LeftColumn({ onOpen }: { onOpen: (v: 'EST' | 'SCI' | 'COM' | 'debate') 
         </button>
       </div>
 
-      {/* active role summary */}
       <div className="mt-auto rounded border border-white/10 bg-[#131A29] p-3">
-        <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Rol activo</p>
+        <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">ROL ACTIVO</p>
         {myRole && ROLE_SUMMARY[myRole] ? (
           <>
             <p className="text-sm font-medium text-white">{myRole}</p>
@@ -174,9 +172,29 @@ function CenterColumn() {
   const hasSCI = selectedModules.some(m => m.category === 'SCI');
   const hasCOM = selectedModules.some(m => m.category === 'COM');
 
+  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [fullscreen, setFullscreen] = useState(false);
+  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const onPointerDown = (e: React.PointerEvent) => {
+    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: transform.x, origY: transform.y };
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    setTransform(t => ({ ...t, x: dragRef.current!.origX + dx, y: dragRef.current!.origY + dy }));
+  };
+  const onPointerUp = () => { dragRef.current = null; };
+  const onWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    setTransform(t => ({ ...t, scale: Math.max(0.5, Math.min(3, t.scale - e.deltaY * 0.0015)) }));
+  };
+  const resetView = () => setTransform({ x: 0, y: 0, scale: 1 });
+
   return (
     <section className="bg-[#090D16] flex flex-col overflow-hidden">
-      <div className="flex-1 relative">
+      <div className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing">
         <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded bg-black/40 text-slate-300 hover:text-white hover:bg-black/60 transition-colors" aria-label="Vista anterior">
           <ChevronLeft className="h-5 w-5" aria-hidden="true" />
         </button>
@@ -186,9 +204,40 @@ function CenterColumn() {
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 text-xs font-mono text-slate-400 bg-black/40 px-2 py-1 rounded">
           {views[blueprintView]}
         </div>
-        <div className="absolute inset-0 flex items-center justify-center p-4">
-          <BlueprintSVG view={blueprintView} hasEST={hasEST} hasSCI={hasSCI} hasCOM={hasCOM} />
+        <div className="absolute top-2 right-2 z-10 flex gap-1">
+          <button onClick={resetView} className="text-[10px] px-2 py-1 rounded bg-black/40 text-slate-400 hover:text-white hover:bg-black/60 transition-colors" aria-label="Restablecer vista">
+            Reset
+          </button>
+          <button onClick={() => setFullscreen(true)} className="text-[10px] px-2 py-1 rounded bg-black/40 text-slate-400 hover:text-white hover:bg-black/60 transition-colors" aria-label="Pantalla completa">
+            ⛶ Full
+          </button>
         </div>
+
+        <div
+          className="absolute inset-0 flex items-center justify-center p-4"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerLeave={onPointerUp}
+          onWheel={onWheel}
+        >
+          <div style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`, transformOrigin: 'center', transition: dragRef.current ? 'none' : 'transform 0.15s ease-out', willChange: 'transform' }}>
+            <BlueprintSVG view={blueprintView} hasEST={hasEST} hasSCI={hasSCI} hasCOM={hasCOM} />
+          </div>
+        </div>
+
+        {fullscreen && (
+          <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setFullscreen(false)}>
+            <div className="relative w-full h-full max-w-5xl max-h-[90vh] flex items-center justify-center" onClick={e => e.stopPropagation()}>
+              <button onClick={() => setFullscreen(false)} className="absolute top-2 right-2 z-10 text-xs px-3 py-1.5 rounded bg-white/10 text-white hover:bg-white/20 transition-colors">
+                ✕ Cerrar
+              </button>
+              <div className="w-full h-full flex items-center justify-center">
+                <BlueprintSVG view={blueprintView} hasEST={hasEST} hasSCI={hasSCI} hasCOM={hasCOM} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="shrink-0 border-t border-white/10 px-3 py-2 flex items-center gap-2 overflow-x-auto">
@@ -214,71 +263,163 @@ function CenterColumn() {
   );
 }
 
+// ---- Blueprint SVG (professional technical drawing) ----
 function BlueprintSVG({ view, hasEST, hasSCI, hasCOM }: { view: number; hasEST: boolean; hasSCI: boolean; hasCOM: boolean }) {
+  const gridColor = 'rgba(56,189,248,0.10)';
+  const frameColor = 'rgba(56,189,248,0.35)';
+  const accent = '#38bdf8';
+  const amber = '#f59e0b';
+  const green = '#10b981';
+  const cyan = '#22d3ee';
+
   if (view === 0) {
     return (
-      <svg viewBox="0 0 200 300" className="h-full max-h-[280px] w-auto" aria-label="Segmento de Lanzamiento">
+      <svg viewBox="0 0 220 320" className="h-[280px] w-auto drop-shadow-[0_0_12px_rgba(56,189,248,0.15)]" aria-label="Segmento de Lanzamiento">
         <defs>
-          <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-            <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(56,189,248,0.08)" strokeWidth="0.5" />
+          <pattern id="gridVAB" width="10" height="10" patternUnits="userSpaceOnUse">
+            <path d="M 10 0 L 0 0 0 10" fill="none" stroke={gridColor} strokeWidth="0.5" />
           </pattern>
+          <linearGradient id="bodyGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#0f172a" />
+            <stop offset="50%" stopColor="#1e293b" />
+            <stop offset="100%" stopColor="#0f172a" />
+          </linearGradient>
         </defs>
-        <rect width="200" height="300" fill="url(#grid)" />
-        <rect x="85" y="60" width="30" height="160" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" rx="4" />
-        <polygon points="85,60 100,30 115,60" fill="#38bdf8" opacity="0.8" />
+        <rect width="220" height="320" fill="url(#gridVAB)" />
+        {/* frame brackets */}
+        <path d="M 8 8 L 8 24 M 8 8 L 24 8" stroke={frameColor} strokeWidth="1.5" fill="none" />
+        <path d="M 212 8 L 212 24 M 212 8 L 196 8" stroke={frameColor} strokeWidth="1.5" fill="none" />
+        <path d="M 8 312 L 8 296 M 8 312 L 24 312" stroke={frameColor} strokeWidth="1.5" fill="none" />
+        <path d="M 212 312 L 212 296 M 212 312 L 196 312" stroke={frameColor} strokeWidth="1.5" fill="none" />
+
+        {/* dimension line */}
+        <line x1="40" y1="30" x2="40" y2="220" stroke="#475569" strokeWidth="0.5" strokeDasharray="2 2" />
+        <text x="34" y="125" textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="monospace" transform="rotate(-90 34 125)">2.3 m</text>
+
+        {/* rocket body */}
+        <rect x="92" y="70" width="36" height="170" fill="url(#bodyGrad)" stroke={accent} strokeWidth="1.8" rx="4" />
+        {/* nose cone */}
+        <polygon points="92,70 110,35 128,70" fill={accent} opacity="0.85" />
+        <polygon points="92,70 110,35 128,70" fill="none" stroke={accent} strokeWidth="1.5" />
+        {/* payload fairing */}
+        <rect x="96" y="55" width="28" height="18" fill="#0f172a" stroke="#94a3b8" strokeWidth="1" rx="2" />
+        <line x1="110" y1="55" x2="110" y2="73" stroke="#94a3b8" strokeWidth="0.5" strokeDasharray="2 1" />
+
+        {/* boosters */}
         {hasEST && (
           <>
-            <rect x="60" y="120" width="18" height="90" fill="#334155" stroke="#f59e0b" strokeWidth="1" rx="3" />
-            <rect x="122" y="120" width="18" height="90" fill="#334155" stroke="#f59e0b" strokeWidth="1" rx="3" />
+            <rect x="62" y="135" width="22" height="100" fill="#1e293b" stroke={amber} strokeWidth="1.2" rx="3" />
+            <rect x="136" y="135" width="22" height="100" fill="#1e293b" stroke={amber} strokeWidth="1.2" rx="3" />
+            <text x="73" y="185" textAnchor="middle" fill={amber} fontSize="7" fontFamily="monospace">SRB</text>
+            <text x="147" y="185" textAnchor="middle" fill={amber} fontSize="7" fontFamily="monospace">SRB</text>
           </>
         )}
-        <rect x="88" y="45" width="24" height="20" fill="#0f172a" stroke="#94a3b8" strokeWidth="1" rx="2" />
-        <text x="100" y="280" textAnchor="middle" fill="#64748b" fontSize="9" fontFamily="monospace">VAB · Lanzador</text>
+        {/* engine */}
+        <rect x="98" y="240" width="24" height="12" fill="#334155" stroke={accent} strokeWidth="1" rx="2" />
+        {/* exhaust */}
+        <path d="M 102 252 L 100 270 L 108 260 L 112 275 L 118 260 L 120 270 L 118 252" fill="none" stroke={amber} strokeWidth="1" opacity="0.6" />
+
+        <text x="110" y="305" textAnchor="middle" fill="#64748b" fontSize="9" fontFamily="monospace" letterSpacing="1">VAB · LANZADOR</text>
+        <text x="110" y="16" textAnchor="middle" fill={accent} fontSize="8" fontFamily="monospace" opacity="0.7">REV 04 · SSO 650km</text>
       </svg>
     );
   }
   if (view === 1) {
     return (
-      <svg viewBox="0 0 260 200" className="h-full max-h-[280px] w-auto" aria-label="Carga Útil">
+      <svg viewBox="0 0 280 210" className="h-[280px] w-auto drop-shadow-[0_0_12px_rgba(56,189,248,0.15)]" aria-label="Carga Útil">
         <defs>
-          <pattern id="grid2" width="10" height="10" patternUnits="userSpaceOnUse">
-            <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(56,189,248,0.08)" strokeWidth="0.5" />
+          <pattern id="gridPayload" width="10" height="10" patternUnits="userSpaceOnUse">
+            <path d="M 10 0 L 0 0 0 10" fill="none" stroke={gridColor} strokeWidth="0.5" />
           </pattern>
         </defs>
-        <rect width="260" height="200" fill="url(#grid2)" />
-        <rect x="100" y="70" width="60" height="60" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" rx="6" />
+        <rect width="280" height="210" fill="url(#gridPayload)" />
+        <path d="M 8 8 L 8 24 M 8 8 L 24 8" stroke={frameColor} strokeWidth="1.5" fill="none" />
+        <path d="M 272 8 L 272 24 M 272 8 L 256 8" stroke={frameColor} strokeWidth="1.5" fill="none" />
+        <path d="M 8 202 L 8 186 M 8 202 L 24 202" stroke={frameColor} strokeWidth="1.5" fill="none" />
+        <path d="M 272 202 L 272 186 M 272 202 L 256 202" stroke={frameColor} strokeWidth="1.5" fill="none" />
+
+        {/* solar panels */}
         {hasCOM && (
           <>
-            <rect x="20" y="85" width="75" height="30" fill="#0f172a" stroke="#10b981" strokeWidth="1" rx="2" />
-            <rect x="165" y="85" width="75" height="30" fill="#0f172a" stroke="#10b981" strokeWidth="1" rx="2" />
+            <rect x="12" y="88" width="88" height="34" fill="#0f172a" stroke={green} strokeWidth="1.2" rx="2" />
+            <rect x="180" y="88" width="88" height="34" fill="#0f172a" stroke={green} strokeWidth="1.2" rx="2" />
+            {/* panel grid lines */}
+            {[0,1,2,3].map(i => (
+              <line key={`pl-${i}`} x1={12 + i*22} y1="88" x2={12 + i*22} y2="122" stroke={green} strokeWidth="0.4" opacity="0.5" />
+            ))}
+            {[0,1,2,3].map(i => (
+              <line key={`pr-${i}`} x1={180 + i*22} y1="88" x2={180 + i*22} y2="122" stroke={green} strokeWidth="0.4" opacity="0.5" />
+            ))}
+            <text x="56" y="84" textAnchor="middle" fill={green} fontSize="7" fontFamily="monospace">SOLAR L</text>
+            <text x="224" y="84" textAnchor="middle" fill={green} fontSize="7" fontFamily="monospace">SOLAR R</text>
           </>
         )}
+        {/* bus */}
+        <rect x="110" y="72" width="60" height="66" fill="#1e293b" stroke={accent} strokeWidth="1.8" rx="6" />
+        <rect x="116" y="78" width="48" height="54" fill="#0f172a" stroke="#475569" strokeWidth="0.6" rx="4" />
+        {/* sensors */}
         {hasSCI && (
           <>
-            <circle cx="130" cy="60" r="8" fill="#0f172a" stroke="#22d3ee" strokeWidth="1" />
-            <circle cx="155" cy="55" r="6" fill="#0f172a" stroke="#22d3ee" strokeWidth="1" />
+            <circle cx="125" cy="58" r="9" fill="#0f172a" stroke={cyan} strokeWidth="1.2" />
+            <circle cx="125" cy="58" r="4" fill={cyan} opacity="0.6" />
+            <circle cx="155" cy="52" r="7" fill="#0f172a" stroke={cyan} strokeWidth="1.2" />
+            <circle cx="155" cy="52" r="3" fill={cyan} opacity="0.6" />
+            <text x="140" y="44" textAnchor="middle" fill={cyan} fontSize="7" fontFamily="monospace">SCI SENSORS</text>
           </>
         )}
-        {hasCOM && <line x1="130" y1="70" x2="130" y2="40" stroke="#10b981" strokeWidth="1.5" />}
-        <text x="130" y="190" textAnchor="middle" fill="#64748b" fontSize="9" fontFamily="monospace">Carga Útil · Satélite</text>
+        {/* antenna */}
+        {hasCOM && (
+          <>
+            <line x1="140" y1="72" x2="140" y2="42" stroke={green} strokeWidth="1.5" />
+            <circle cx="140" cy="38" r="4" fill="none" stroke={green} strokeWidth="1" />
+            <circle cx="140" cy="38" r="1.5" fill={green} />
+          </>
+        )}
+        {/* thruster */}
+        <rect x="132" y="138" width="16" height="8" fill="#334155" stroke={accent} strokeWidth="1" rx="2" />
+
+        <text x="140" y="198" textAnchor="middle" fill="#64748b" fontSize="9" fontFamily="monospace" letterSpacing="1">CARGA ÚTIL · SATÉLITE</text>
+        <text x="140" y="16" textAnchor="middle" fill={accent} fontSize="8" fontFamily="monospace" opacity="0.7">REV 04 · 3 SLOTS SCI</text>
       </svg>
     );
   }
+  // ConOps
   return (
-    <svg viewBox="0 0 300 200" className="h-full max-h-[280px] w-auto" aria-label="Concepto de Operaciones">
+    <svg viewBox="0 0 320 210" className="h-[280px] w-auto drop-shadow-[0_0_12px_rgba(56,189,248,0.15)]" aria-label="Concepto de Operaciones">
       <defs>
-        <pattern id="grid3" width="10" height="10" patternUnits="userSpaceOnUse">
-          <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(56,189,248,0.08)" strokeWidth="0.5" />
+        <pattern id="gridConOps" width="10" height="10" patternUnits="userSpaceOnUse">
+          <path d="M 10 0 L 0 0 0 10" fill="none" stroke={gridColor} strokeWidth="0.5" />
         </pattern>
       </defs>
-      <rect width="300" height="200" fill="url(#grid3)" />
-      <circle cx="150" cy="160" r="40" fill="#0f172a" stroke="#38bdf8" strokeWidth="1.5" />
-      <ellipse cx="150" cy="160" rx="40" ry="12" fill="none" stroke="#38bdf8" strokeWidth="0.8" opacity="0.5" />
-      <path d="M 40 80 Q 150 20 260 80" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="4 3" />
-      <rect x="142" y="45" width="16" height="16" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" rx="2" />
-      <rect x="138" y="190" width="24" height="6" fill="#10b981" opacity="0.8" />
-      <text x="150" y="198" textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="monospace">Estación terrena</text>
-      <text x="150" y="25" textAnchor="middle" fill="#64748b" fontSize="9" fontFamily="monospace">ConOps · Órbita</text>
+      <rect width="320" height="210" fill="url(#gridConOps)" />
+      <path d="M 8 8 L 8 24 M 8 8 L 24 8" stroke={frameColor} strokeWidth="1.5" fill="none" />
+      <path d="M 312 8 L 312 24 M 312 8 L 296 8" stroke={frameColor} strokeWidth="1.5" fill="none" />
+      <path d="M 8 202 L 8 186 M 8 202 L 24 202" stroke={frameColor} strokeWidth="1.5" fill="none" />
+      <path d="M 312 202 L 312 186 M 312 202 L 296 202" stroke={frameColor} strokeWidth="1.5" fill="none" />
+
+      {/* orbit path */}
+      <ellipse cx="160" cy="150" rx="120" ry="40" fill="none" stroke={amber} strokeWidth="1.2" strokeDasharray="5 3" opacity="0.7" />
+
+      {/* earth */}
+      <circle cx="160" cy="150" r="38" fill="#0f172a" stroke={accent} strokeWidth="1.5" />
+      <ellipse cx="160" cy="150" rx="38" ry="11" fill="none" stroke={accent} strokeWidth="0.6" opacity="0.4" />
+      {/* continent hints */}
+      <path d="M 140 135 Q 150 130 165 138 Q 175 145 160 150" fill="none" stroke="#38bdf8" strokeWidth="0.6" opacity="0.3" />
+
+      {/* satellite on orbit */}
+      <rect x="268" y="105" width="14" height="14" fill="#1e293b" stroke={accent} strokeWidth="1.5" rx="2" transform="rotate(15 275 112)" />
+      {/* coverage cone */}
+      <path d="M 275 119 L 230 150 L 320 150 Z" fill={cyan} opacity="0.08" />
+
+      {/* ground station */}
+      <rect x="148" y="196" width="24" height="5" fill={green} opacity="0.8" rx="1" />
+      <line x1="160" y1="196" x2="160" y2="188" stroke={green} strokeWidth="1" />
+      <text x="160" y="208" textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="monospace">ESTACIÓN TERRENA</text>
+
+      {/* labels */}
+      <text x="160" y="16" textAnchor="middle" fill={accent} fontSize="8" fontFamily="monospace" opacity="0.7">CONOPS · ÓRBITA LEO 650km</text>
+      <text x="40" y="100" fill={amber} fontSize="7" fontFamily="monospace">ÓRBITA</text>
+      <text x="275" y="98" textAnchor="middle" fill={cyan} fontSize="7" fontFamily="monospace">SAT</text>
     </svg>
   );
 }
@@ -395,7 +536,6 @@ function CatalogModal({ view, onClose }: { view: 'EST' | 'SCI' | 'COM' | 'debate
         className="w-full max-w-4xl max-h-[85vh] bg-[#0F1623] border border-white/15 rounded-xl flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        {/* header */}
         <div className="shrink-0 border-b border-white/10 px-4 py-3 flex items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold text-white">{title}</h2>
@@ -414,7 +554,6 @@ function CatalogModal({ view, onClose }: { view: 'EST' | 'SCI' | 'COM' | 'debate
           </button>
         </div>
 
-        {/* body */}
         <div className="flex-1 overflow-y-auto p-4">
           {isDebate ? (
             activeVote ? (
