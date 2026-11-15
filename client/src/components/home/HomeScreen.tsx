@@ -11,6 +11,7 @@ import {
   Satellite,
   ShieldCheck,
   Sparkles,
+  Star,
   Target,
   Users,
   Wrench,
@@ -142,17 +143,13 @@ export function HomeScreen({ onStart }: { onStart: () => void }) {
         <div className="flex items-center gap-gutter-sm">
           <Satellite className="h-6 w-6 text-primary" aria-hidden="true" />
           <span className="font-headline text-title-md text-on-surface">OrbitaLab</span>
-          <span className="hidden font-mono text-mono-sm text-on-surface-variant sm:inline">
-            MDL EDITION
-          </span>
         </div>
-        <div className="flex items-center gap-gutter-sm">
-          <Pill icon={Sparkles} tone="primary">
-            NASA Space Apps 2026
-          </Pill>
-          <ActionButton icon={Rocket} onClick={onStart}>
-            Iniciar misión
-          </ActionButton>
+        <div className="flex items-center">
+          <img
+            src="/space-apps-challenge.png"
+            alt="NASA Space Apps Challenge"
+            className="h-16 w-16 object-contain transition-transform duration-200 hover:scale-105 motion-reduce:transition-none"
+          />
         </div>
       </header>
 
@@ -160,15 +157,22 @@ export function HomeScreen({ onStart }: { onStart: () => void }) {
         <section className="grid grid-cols-1 items-center gap-gutter-xl lg:grid-cols-[1.05fr_0.95fr]">
           <div className="flex flex-col gap-gutter-lg">
             <div className="flex flex-wrap gap-2">
-              <Pill icon={Orbit} tone="primary">
-                Simulador de ingeniería concurrente
+              <Pill
+                icon={Orbit}
+                tone="muted"
+                className="!border-[#ff822f]/60 !bg-[#ff822f]/10 !text-[#ff822f]"
+              >
+                PACHA TEAM
               </Pill>
               <Pill icon={Users} tone="muted">
                 1–4 jugadores
               </Pill>
             </div>
             <h1 className="font-headline text-display-lg-mobile text-on-surface text-balance md:text-display-lg">
-              Diseña, negocia y vuela una misión espacial completa.
+              Diseña, Simula y Despega tu Misión Espacial en{' '}
+              <span className="text-[#22D3EE] drop-shadow-[0_0_8px_rgba(34,211,238,0.45)]">
+                Tiempo Real.
+              </span>
             </h1>
             <p className="max-w-xl font-body text-body-lg text-on-surface-variant">
               OrbitaLab convierte el ciclo de vida de una misión NASA en un juego de decisiones:
@@ -186,6 +190,16 @@ export function HomeScreen({ onStart }: { onStart: () => void }) {
                 Ver cómo funciona
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </a>
+              <ActionButton
+                variant="secondary"
+                style={{ backgroundColor: '#323232' }}
+                className="!border-transparent !text-white hover:!text-primary"
+              >
+                <a href="https://github.com/Jjulianperez/Mision-Space-Nasa-App" className="flex items-center gap-2">
+                  <Star className="h-4 w-4 text-amber-400" aria-hidden="true" />
+                  Código fuente
+                </a>
+              </ActionButton>
             </div>
             <div className="grid grid-cols-2 gap-gutter-sm sm:grid-cols-4">
               {[
@@ -206,9 +220,6 @@ export function HomeScreen({ onStart }: { onStart: () => void }) {
 
           <div className="relative min-h-[320px] overflow-hidden rounded-md border border-outline-variant bg-surface-container-low console-grid shadow-console">
             <HeroOrbit />
-            <div className="absolute bottom-3 left-3 rounded border border-outline-variant bg-surface-container-low/90 px-gutter-sm py-gutter-xs font-mono text-mono-sm text-on-surface-variant">
-              TRAZA DIDÁCTICA · NO ES UNA TRAYECTORIA REAL
-            </div>
           </div>
         </section>
 
@@ -308,11 +319,12 @@ export function HomeScreen({ onStart }: { onStart: () => void }) {
         <section className="flex flex-col items-center gap-gutter-md rounded-md border border-primary/30 bg-primary/5 p-gutter-xl text-center">
           <Satellite className="h-8 w-8 text-primary" aria-hidden="true" />
           <h2 className="font-headline text-headline-lg text-on-surface text-balance">
-            ¿Listo para asumir el siguiente segmento?
+            ¿Listo para liderar la próxima expedición espacial?
           </h2>
           <p className="max-w-2xl font-body text-body-lg text-on-surface-variant">
-            Elige un escenario, arma tu nave y descubre si tu diseño sobrevive al Max-Q, a la
-            crisis del 40% y a la ventana de descarga final.
+            Únete al puente de mando con tu equipo. Diseña tu lanzador, supera las auditorías técnicas del MDL y realiza tu primer despegue con éxito. Cada decisión cuenta: ¿podrás cumplir la misión?
+
+
           </p>
           <ActionButton icon={Rocket} onClick={onStart} className="px-gutter-xl">
             Configurar misión
@@ -322,7 +334,7 @@ export function HomeScreen({ onStart }: { onStart: () => void }) {
 
       <footer className="border-t border-outline-variant bg-surface-container-low px-gutter-lg py-gutter-md">
         <p className="mx-auto max-w-6xl font-body text-[11px] leading-relaxed text-on-surface-variant">
-          OrbitaLab: MDL Edition · Pacha Team · NASA Space Apps Challenge 2026. Los costos, masas,
+          OrbitaLab · Pacha Team. Los costos, masas,
           potencias y trayectorias son valores didácticos de balance del juego; no son
           especificaciones ni efemérides oficiales de NASA.
         </p>
