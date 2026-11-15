@@ -7,10 +7,17 @@ import { BLUEPRINT_VIEW_NAMES, BlueprintFallback, type BlueprintProps } from './
 type DesignModel3DProps = BlueprintProps & {
   /** Cambia para devolver la cámara a su posición inicial. */
   resetKey: number;
+  launching?: boolean;
+  onLaunchComplete?: () => void;
+  className?: string;
 };
 
 /** Evita saltos de la animación al volver a una pestaña que estuvo en segundo plano. */
 const MAX_FRAME_DELTA_SECONDS = 0.1;
+const LAUNCH_TIMING = {
+  normal: { ignitionSeconds: 1.2, ascentSeconds: 4.8, totalMilliseconds: 6000 },
+  reducedMotion: { ignitionSeconds: 0.6, ascentSeconds: 3.5, totalMilliseconds: 4100 },
+} as const;
 
 type ModelMaterials = {
   hull: THREE.MeshStandardMaterial;
@@ -157,7 +164,10 @@ function addSatellite(
 function createRocketScene(
   scene: THREE.Scene,
   materials: ModelMaterials,
-  props: Pick<DesignModel3DProps, 'hasEST' | 'hasSCI' | 'hasCOM'>,
+  props: Pick<
+    DesignModel3DProps,
+    'hasEST' | 'hasSCI' | 'hasCOM' | 'launching' | 'onLaunchComplete'
+  >,
 ): SceneUpdate {
   const grid = new THREE.GridHelper(8, 16, 0x1e293b, 0x0f172a);
   scene.add(grid);
@@ -269,6 +279,30 @@ function createRocketScene(
     });
   }
 
+  const launchFlames: { mesh: THREE.Mesh; material: THREE.MeshBasicMaterial }[] = [];
+  if (props.launching) {
+    const addFlame = (x: number, y: number, radius: number, height: number, color: number) => {
+      const material = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.85,
+        depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(new THREE.ConeGeometry(radius, height, 20), material);
+      mesh.position.set(x, y, 0);
+      rocket.add(mesh);
+      launchFlames.push({ mesh, material });
+    };
+
+    addFlame(0, -0.21, 0.16, 0.72, 0xf97316);
+    addFlame(0, -0.16, 0.08, 0.5, 0xfef08a);
+    if (props.hasEST) {
+      [-0.58, 0.58].forEach((x) => {
+        addFlame(x, 0.335, 0.1, 0.55, 0xfb923c);
+      });
+    }
+  }
+
   const gantry = new THREE.Group();
   gantry.position.x = -1.35;
   const mast = new THREE.LineSegments(
@@ -283,7 +317,40 @@ function createRocketScene(
   gantry.add(arm);
   scene.add(gantry);
 
-  return () => {};
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const timing = reducedMotion ? LAUNCH_TIMING.reducedMotion : LAUNCH_TIMING.normal;
+  const ignitionDuration = timing.ignitionSeconds;
+  const ascentDuration = timing.ascentSeconds;
+  const ascentDistance = 8.5;
+  let launchTime = 0;
+  let launchComplete = false;
+  return (delta) => {
+    if (!props.launching || launchComplete) return;
+
+    launchTime += delta;
+    if (launchTime < ignitionDuration) {
+      const vibration = reducedMotion ? 0 : 1 - launchTime / ignitionDuration;
+      rocket.position.x = Math.sin(launchTime * 62) * 0.035 * vibration;
+      rocket.rotation.z = Math.sin(launchTime * 57) * 0.012 * vibration;
+    } else {
+      const progress = Math.min(1, (launchTime - ignitionDuration) / ascentDuration);
+      const ascent = progress ** 1.8;
+      rocket.position.y = ascent * ascentDistance;
+      rocket.position.x = reducedMotion ? 0 : Math.sin(launchTime * 15) * 0.025 * (1 - ascent);
+      rocket.rotation.z = reducedMotion ? 0 : Math.sin(launchTime * 13) * 0.004 * (1 - ascent);
+
+      if (progress === 1) {
+        launchComplete = true;
+        props.onLaunchComplete?.();
+      }
+    }
+
+    const flamePulse = reducedMotion ? 0.35 : (Math.sin(launchTime * 44) + 1) / 2;
+    launchFlames.forEach(({ mesh, material }, index) => {
+      mesh.scale.y = 0.8 + flamePulse * (index === 1 ? 0.35 : 0.55);
+      material.opacity = 0.66 + flamePulse * 0.3;
+    });
+  };
 }
 
 function createOrbiterScene(
@@ -528,7 +595,16 @@ function createOrbitScene(
   };
 }
 
-export function DesignModel3D({ view, hasEST, hasSCI, hasCOM, resetKey }: DesignModel3DProps) {
+export function DesignModel3D({
+  view,
+  hasEST,
+  hasSCI,
+  hasCOM,
+  resetKey,
+  launching = false,
+  onLaunchComplete,
+  className = 'h-[280px] w-[280px] max-w-full drop-shadow-[0_0_12px_rgba(56,189,248,0.15)]',
+}: DesignModel3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [webglUnavailable, setWebglUnavailable] = useState(false);
 
@@ -590,7 +666,12 @@ export function DesignModel3D({ view, hasEST, hasSCI, hasCOM, resetKey }: Design
     controls.enableDamping = true;
     controls.dampingFactor = 0.07;
     controls.enablePan = false;
+    controls.enableZoom = !launching;
     controls.rotateSpeed = 0.75;
+    if (launching) {
+      controls.minPolarAngle = 0.25;
+      controls.maxPolarAngle = Math.PI / 2 + 0.12;
+    }
     controls.minDistance = view === 0 ? 4.5 : view === 1 ? 2.8 : 8;
     controls.maxDistance = view === 2 ? 22 : 18;
     controls.target.set(0, view === 0 ? 2.5 : 0, 0);
@@ -606,17 +687,22 @@ export function DesignModel3D({ view, hasEST, hasSCI, hasCOM, resetKey }: Design
     const textures: THREE.Texture[] = [];
     let updateScene: SceneUpdate;
     if (view === 0) {
-      updateScene = createRocketScene(scene, materials, { hasEST, hasSCI, hasCOM });
+      updateScene = createRocketScene(scene, materials, {
+        hasEST,
+        hasSCI,
+        hasCOM,
+        launching,
+        onLaunchComplete,
+      });
     } else if (view === 1) {
       updateScene = createOrbiterScene(scene, materials, { hasSCI, hasCOM });
     } else {
       updateScene = createOrbitScene(scene, materials, { hasSCI, hasCOM }, textures);
     }
 
-    // Solo la vista orbital se anima; las demás se redibujan cuando cambia la cámara
-    // o el tamaño, para no ocupar la GPU con fotogramas idénticos.
-    const animated =
-      view === 2 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Orbita y secuencia de lanzamiento animadas; el resto solo se redibuja cuando hace falta.
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const animated = launching || (view === 2 && !reducedMotion);
     let needsRender = true;
     controls.addEventListener('change', () => {
       needsRender = true;
@@ -675,7 +761,17 @@ export function DesignModel3D({ view, hasEST, hasSCI, hasCOM, resetKey }: Design
       renderer.forceContextLoss();
       container.removeChild(renderer.domElement);
     };
-  }, [hasCOM, hasEST, hasSCI, resetKey, view]);
+  }, [hasCOM, hasEST, hasSCI, launching, onLaunchComplete, resetKey, view]);
+
+  useEffect(() => {
+    if (!webglUnavailable || !launching || !onLaunchComplete) return;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const duration = reducedMotion
+      ? LAUNCH_TIMING.reducedMotion.totalMilliseconds
+      : LAUNCH_TIMING.normal.totalMilliseconds;
+    const timeout = window.setTimeout(onLaunchComplete, duration);
+    return () => window.clearTimeout(timeout);
+  }, [launching, onLaunchComplete, webglUnavailable]);
 
   if (webglUnavailable) {
     return <BlueprintFallback view={view} hasEST={hasEST} hasSCI={hasSCI} hasCOM={hasCOM} />;
@@ -684,7 +780,7 @@ export function DesignModel3D({ view, hasEST, hasSCI, hasCOM, resetKey }: Design
   return (
     <div
       ref={containerRef}
-      className="h-full w-full"
+      className={className}
       role="img"
       aria-label={`Modelo 3D del ${BLUEPRINT_VIEW_NAMES[view] ?? 'diseño de misión'}. Arrastra para girarlo.`}
     />

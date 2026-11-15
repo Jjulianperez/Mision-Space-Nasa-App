@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   BarChart3,
@@ -50,6 +50,53 @@ const ROLE_SUMMARY: Record<string, { controls: string; objective: string }> = {
   DIRECTOR: { controls: 'Presupuesto y decisiones', objective: 'Equilibrar costes, masa y objetivos científicos.' },
 };
 
+function LaunchSequenceOverlay({
+  missionName,
+  onComplete,
+}: {
+  missionName: string;
+  onComplete: () => void;
+}) {
+  const hasEST = useDesignStore((state) => state.selectedModules.some((module) => module.category === 'EST'));
+  const hasSCI = useDesignStore((state) => state.selectedModules.some((module) => module.category === 'SCI'));
+  const hasCOM = useDesignStore((state) => state.selectedModules.some((module) => module.category === 'COM'));
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-[#040814]"
+      role="status"
+      aria-live="polite"
+      aria-label={`Secuencia de lanzamiento de ${missionName}`}
+    >
+      <div className="launch-starfield absolute inset-0" aria-hidden="true" />
+      <div className="absolute inset-x-0 bottom-0 h-32 border-t border-cyan-400/20 bg-gradient-to-t from-[#101827] to-transparent" aria-hidden="true">
+        <div className="launch-ground-grid absolute inset-x-0 bottom-0 h-20 opacity-40" />
+        <div className="launch-ignition-glow absolute left-1/2 top-0 h-24 w-48 -translate-x-1/2 rounded-full bg-orange-400/20 blur-2xl" />
+      </div>
+      <div className="absolute left-1/2 top-8 -translate-x-1/2 text-center">
+        <p className="font-mono text-xs uppercase tracking-[0.3em] text-cyan-300">
+          Secuencia de lanzamiento
+        </p>
+        <p className="mt-2 font-headline text-title-md text-white">{missionName}</p>
+      </div>
+      <div className="absolute bottom-[12%] left-1/2 -translate-x-1/2">
+        <DesignModel3D
+          view={0}
+          hasEST={hasEST}
+          hasSCI={hasSCI}
+          hasCOM={hasCOM}
+          resetKey={0}
+          launching
+          onLaunchComplete={onComplete}
+          className="h-[420px] w-[360px] max-h-[58vh] max-w-[78vw]"
+        />
+      </div>
+      <p className="absolute bottom-5 font-mono text-[10px] uppercase tracking-[0.2em] text-cyan-200/70">
+        Ignición · Ascenso · Inserción orbital
+      </p>
+    </div>
+  );
+}
 // ---- Top Bar ----
 function TopBar() {
   const mission = useDesignStore(s => s.mission);
@@ -66,6 +113,17 @@ function TopBar() {
   const isSolo = localMode || (roomState?.players.length ?? 1) <= 1;
 
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [launching, setLaunching] = useState(false);
+
+  const completeLaunchSequence = useCallback(() => {
+    setLaunching(false);
+    launch();
+  }, [launch]);
+
+  const startLaunchSequence = () => {
+    setConfirmOpen(false);
+    setLaunching(true);
+  };
 
   const handleLaunch = () => {
     if (!audit) {
@@ -82,13 +140,12 @@ function TopBar() {
     if (audit.warnings.length > 0) {
       setConfirmOpen(true);
     } else {
-      launch();
+      startLaunchSequence();
     }
   };
 
   const confirmLaunch = () => {
-    setConfirmOpen(false);
-    launch();
+    startLaunchSequence();
   };
 
   const handleRoleChange = (role: typeof ROLE_ORDER[number]) => {
@@ -143,6 +200,7 @@ function TopBar() {
         <button
           type="button"
           onClick={handleLaunch}
+          disabled={launching}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-black text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
         >
           <Rocket className="h-4 w-4" aria-hidden="true" />
@@ -171,6 +229,12 @@ function TopBar() {
           ))}
         </ul>
       </ConfirmDialog>
+    )}
+    {launching && (
+      <LaunchSequenceOverlay
+        missionName={mission?.title ?? 'Misión espacial'}
+        onComplete={completeLaunchSequence}
+      />
     )}
     </>
   );

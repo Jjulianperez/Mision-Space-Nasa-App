@@ -1,7 +1,7 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { GraduationCap, HardHat, Satellite } from 'lucide-react';
-import type { DifficultyMode } from '@shared/types';
+import type { DifficultyMode, MissionConfig, RoleType } from '@shared/types';
 import { cn } from '../../lib/cn';
 import {
   ConsoleHeader,
@@ -41,12 +41,34 @@ const STARS = [
   [140, 288, 0.8], [204, 302, 0.6], [330, 298, 0.7], [392, 286, 0.5], [458, 306, 0.8],
 ] as const;
 
-function OrbitView({ progress, mode }: { progress: number; mode: DifficultyMode }) {
+function OrbitView({
+  progress,
+  mode,
+  role,
+  orbitType,
+}: {
+  progress: number;
+  mode: DifficultyMode;
+  role: RoleType;
+  orbitType: MissionConfig['orbitType'];
+}) {
   const angle = Math.PI * 0.92 + (Math.max(0, Math.min(100, progress)) / 100) * Math.PI * 2;
-  const satelliteX = 260 + 192 * Math.cos(angle);
-  const satelliteY = 168 + 66 * Math.sin(angle);
+  const [orbitRx, orbitRy] = {
+    LEO: [192, 66],
+    SSO: [192, 54],
+    LUNAR: [210, 92],
+    DEEP_SPACE: [226, 108],
+  }[orbitType];
+  const satelliteX = 260 + orbitRx * Math.cos(angle);
+  const satelliteY = 168 + orbitRy * Math.sin(angle);
   const accent = mode === 'APPRENTICE' ? '#38bdf8' : '#f59e0b';
   const trail = mode === 'APPRENTICE' ? '#10b981' : '#f59e0b';
+  const activityColor = {
+    DIRECTOR: '#fbbf24',
+    PROPULSION: '#fb923c',
+    SCIENCE: '#22d3ee',
+    COMMS: '#a78bfa',
+  }[role];
 
   return (
     <svg
@@ -72,7 +94,7 @@ function OrbitView({ progress, mode }: { progress: number; mode: DifficultyMode 
         </radialGradient>
         <linearGradient id="trail-grad" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor={trail} stopOpacity="0" />
-          <stop offset="100%" stopColor={trail} stopOpacity="0.9" />
+          <stop offset="100%" stopColor={activityColor ?? trail} stopOpacity="0.9" />
         </linearGradient>
       </defs>
 
@@ -91,8 +113,8 @@ function OrbitView({ progress, mode }: { progress: number; mode: DifficultyMode 
       <ellipse
         cx="260"
         cy="168"
-        rx="192"
-        ry="66"
+        rx={orbitRx}
+        ry={orbitRy}
         fill="none"
         stroke={accent}
         strokeOpacity="0.42"
@@ -102,8 +124,8 @@ function OrbitView({ progress, mode }: { progress: number; mode: DifficultyMode 
       <ellipse
         cx="260"
         cy="168"
-        rx="192"
-        ry="66"
+        rx={orbitRx}
+        ry={orbitRy}
         fill="none"
         stroke="url(#trail-grad)"
         strokeWidth="2.4"
@@ -111,6 +133,68 @@ function OrbitView({ progress, mode }: { progress: number; mode: DifficultyMode 
         strokeLinecap="round"
         opacity="0.9"
       />
+
+      {role === 'SCIENCE' && (
+        <g>
+          <path
+            d={`M${satelliteX} ${satelliteY} L260 168`}
+            stroke="#22d3ee"
+            strokeWidth="2"
+            strokeDasharray="5 4"
+            className="flight-scan-beam"
+          />
+          <circle
+            cx={260 + 46 * Math.cos(angle)}
+            cy={168 + 46 * Math.sin(angle)}
+            r="8"
+            fill="#22d3ee"
+            fillOpacity="0.12"
+            stroke="#67e8f9"
+            strokeWidth="1.5"
+            className="flight-scan-footprint"
+          />
+          <circle
+            cx={260 + 46 * Math.cos(angle)}
+            cy={168 + 46 * Math.sin(angle)}
+            r="3"
+            fill="#67e8f9"
+            opacity="0.9"
+          />
+        </g>
+      )}
+
+      {role === 'COMMS' && (
+        <g>
+          <path
+            d={`M${satelliteX} ${satelliteY} Q${(satelliteX + 260) / 2 + 28} ${(satelliteY + 286) / 2} 260 273`}
+            fill="none"
+            stroke="#a78bfa"
+            strokeWidth="1.5"
+            strokeDasharray="5 5"
+            className="flight-radio-beam"
+          />
+          <circle cx="330" cy="228" r="3" fill="#c4b5fd" className="flight-data-packet" />
+          <circle cx="292" cy="255" r="2.5" fill="#c4b5fd" className="flight-data-packet [animation-delay:0.5s]" />
+        </g>
+      )}
+
+      {role === 'PROPULSION' && (
+        <g transform={`translate(${satelliteX} ${satelliteY}) rotate(${(angle * 180) / Math.PI})`}>
+          <path d="M-16 -2 L-40 -2" stroke="#fb923c" strokeWidth="3" strokeLinecap="round" opacity="0.75" />
+          <path d="M-16 3 L-31 3" stroke="#fde68a" strokeWidth="1.5" strokeLinecap="round" className="flight-engine-flame" />
+          <circle cx="0" cy="0" r="18" fill="none" stroke="#fb923c" strokeWidth="1" strokeDasharray="3 4" className="flight-route-marker" />
+        </g>
+      )}
+
+      {role === 'DIRECTOR' && (
+        <g>
+          <circle cx="260" cy="168" r="88" fill="none" stroke="#fbbf24" strokeOpacity="0.25" strokeDasharray="2 7" />
+          <g transform="translate(260 168)">
+            <path d="M0 -88 L0 -78 M-5 -83 L5 -83" stroke="#fbbf24" strokeWidth="1.5" />
+            <circle cy="-83" r="7" fill="none" stroke="#fbbf24" strokeWidth="1.2" className="flight-route-marker" />
+          </g>
+        </g>
+      )}
 
       <g transform={`translate(${satelliteX} ${satelliteY}) rotate(${(angle * 180) / Math.PI})`}>
         <rect x="-13" y="-8" width="26" height="16" rx="3" fill="#0f172a" stroke={accent} strokeWidth="1.4" />
@@ -140,6 +224,8 @@ function OrbitView({ progress, mode }: { progress: number; mode: DifficultyMode 
 
 interface FlightConsoleTemplateProps {
   mode: DifficultyMode;
+  role: RoleType;
+  orbitType: MissionConfig['orbitType'];
   progress: number;
   actLabel: string;
   orbitLabel: string;
@@ -160,6 +246,8 @@ interface FlightConsoleTemplateProps {
 
 export function FlightConsoleTemplate({
   mode,
+  role,
+  orbitType,
   progress,
   actLabel,
   orbitLabel,
@@ -285,7 +373,7 @@ export function FlightConsoleTemplate({
               </div>
 
               <div className="relative flex min-h-[400px] flex-1 flex-col justify-between overflow-hidden rounded border border-outline-variant bg-surface p-gutter-md">
-                <OrbitView progress={safeProgress} mode={mode} />
+                <OrbitView progress={safeProgress} mode={mode} role={role} orbitType={orbitType} />
                 <div className="pointer-events-none absolute left-1/2 top-[49.4%] z-[1] aspect-square w-[min(56%,260px)] -translate-x-1/2 -translate-y-1/2">
                   <Suspense fallback={null}>
                     <EarthGlobe3D />
