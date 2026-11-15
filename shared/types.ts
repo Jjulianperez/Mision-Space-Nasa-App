@@ -61,6 +61,8 @@ export interface MissionConfig {
   story?: string;
   /** URL de arte conceptual o referencia visual de la misión (opcional, MVP). */
   imageUrl?: string;
+  /** Crédito de la imagen usada en el briefing. */
+  imageCredit?: string;
   /** Objetivos que la misión espera alcanzar (ciencia / ingeniería). */
   objectives?: string[];
 }

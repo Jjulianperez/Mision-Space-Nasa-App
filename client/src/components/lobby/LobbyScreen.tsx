@@ -18,6 +18,7 @@ import {
   Users,
 } from 'lucide-react';
 import type { MissionConfig, RoleType } from '@shared/types';
+import { MissionIllustration } from '../templates/MissionIllustration';
 import { cn } from '../../lib/cn';
 import { ROLE_META, ROLE_ORDER } from '../../lib/roles';
 import { useDesignStore } from '../../store/useDesignStore';
@@ -49,13 +50,32 @@ function MissionBrief({ mission }: { mission: MissionConfig }) {
     },
   ];
 
+  const story = mission.story ?? mission.realNasaReference.summary;
+  const objectives = mission.objectives ?? [];
+
   return (
     <Panel className="flex flex-col gap-gutter-md">
-      <SectionTitle icon={Satellite}>Brief de la misión</SectionTitle>
+      <MissionIllustration mission={mission} />
       <div className="flex flex-col gap-gutter-xs">
+        <div className="flex flex-wrap items-center justify-between gap-gutter-sm">
+          <SectionTitle icon={Satellite}>Brief de la misión</SectionTitle>
+          <Pill tone="success">{ORBIT_LABEL[mission.orbitType]}</Pill>
+        </div>
         <h3 className="font-headline text-headline-md text-on-surface">{mission.title}</h3>
-        <p className="font-mono text-mono-sm text-primary">{ORBIT_LABEL[mission.orbitType]}</p>
+        <p className="font-body text-body-md text-on-surface-variant">{story}</p>
       </div>
+      {objectives.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {objectives.map((objective) => (
+            <span
+              key={objective}
+              className="rounded-full border border-success/30 bg-success/10 px-2 py-0.5 font-mono text-[10px] text-success"
+            >
+              {objective}
+            </span>
+          ))}
+        </div>
+      )}
       <dl className="grid grid-cols-2 gap-gutter-sm">
         {facts.map((fact) => (
           <div
@@ -179,6 +199,7 @@ export function LobbyScreen() {
   const difficulty = useDesignStore((s) => s.difficulty);
   const missionId = useDesignStore((s) => s.missionId);
   const desiredRole = useDesignStore((s) => s.desiredRole);
+  const gameMode = useDesignStore((s) => s.gameMode);
   const startMission = useDesignStore((s) => s.startMission);
   const joinRoom = useDesignStore((s) => s.joinRoom);
   const leaveRoom = useDesignStore((s) => s.leaveRoom);
@@ -194,6 +215,7 @@ export function LobbyScreen() {
     difficulty,
     missionId,
     role: desiredRole,
+    gameMode,
   });
 
   useEffect(() => {
@@ -232,6 +254,7 @@ export function LobbyScreen() {
       difficulty: form.difficulty,
       missionId: form.missionId,
       role: form.role,
+      gameMode: form.gameMode,
     });
     window.setTimeout(() => setBusy(false), 6000);
   };
@@ -287,6 +310,7 @@ export function LobbyScreen() {
           difficulty={form.difficulty}
           missionId={form.missionId}
           role={form.role}
+          gameMode={form.gameMode}
           missions={missions}
           onChange={(patch) => setForm((current) => ({ ...current, ...patch }))}
           onSubmit={handleSubmit}

@@ -1,34 +1,47 @@
-import { useState } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import {
+  ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
   CheckCircle2,
-  Circle,
   GraduationCap,
   HardHat,
   Rocket,
+  Satellite,
+  ShieldCheck,
+  Sparkles,
+  UserRound,
   Users,
 } from 'lucide-react';
-import type { DifficultyMode, MissionConfig, RoleType } from '@shared/types';
+import type { DifficultyMode, GameMode, MissionConfig, RoleType } from '@shared/types';
 import { cn } from '../../lib/cn';
 import { ROLE_META, ROLE_ORDER } from '../../lib/roles';
-import { ActionButton } from './ConsolePrimitives';
+import { ActionButton, Pill, SectionTitle } from './ConsolePrimitives';
+import { MissionIllustration } from './MissionIllustration';
 
 const DIFFICULTIES: Array<{
   id: DifficultyMode;
   label: string;
   description: string;
+  details: string[];
   icon: typeof GraduationCap;
+  accent: 'primary' | 'accent';
 }> = [
   {
     id: 'APPRENTICE',
     label: 'Aprendiz',
     description: 'Asistencia orbital y márgenes amplios.',
+    details: ['Alertas preventivas', 'Tutorial de vuelo', 'Margen amplio de error'],
     icon: GraduationCap,
+    accent: 'primary',
   },
   {
     id: 'ENGINEER',
     label: 'Ingeniero',
     description: 'Telemetría manual y presupuesto ajustado.',
+    details: ['Controles técnicos', 'Menos margen operativo', 'Mayor riesgo de anomalías'],
     icon: HardHat,
+    accent: 'accent',
   },
 ];
 
@@ -39,11 +52,19 @@ const ORBIT_LABEL: Record<MissionConfig['orbitType'], string> = {
   DEEP_SPACE: 'Espacio profundo',
 };
 
+const ROLE_TEASER: Record<RoleType, string> = {
+  DIRECTOR: 'Equilibra masa, coste y objetivos científicos',
+  PROPULSION: 'Protege estructura, combustible e integridad',
+  SCIENCE: 'Calibra instrumentos y maximiza ciencia',
+  COMMS: 'Asegura energía, datos y ventanas de enlace',
+};
+
 export interface MissionSetupPatch {
   playerName?: string;
   difficulty?: DifficultyMode;
   missionId?: string;
   role?: RoleType;
+  gameMode?: GameMode;
 }
 
 interface MissionSetupTemplateProps {
@@ -52,11 +73,30 @@ interface MissionSetupTemplateProps {
   missionId: string;
   role: RoleType;
   missions: MissionConfig[];
+  gameMode?: GameMode;
   onChange: (patch: MissionSetupPatch) => void;
   onSubmit: () => void;
   onJoin: (roomId: string) => void;
   error?: string | null;
   busy?: boolean;
+}
+
+const STEPS = [
+  { id: 'mode', label: 'Modo', shortLabel: 'Operación', description: 'Solo o en equipo' },
+  { id: 'difficulty', label: 'Dificultad', shortLabel: 'Tipo', description: 'Aprendiz o ingeniero' },
+  { id: 'role', label: 'Segmento', shortLabel: 'Rol', description: 'Tu área de mando' },
+  { id: 'commander', label: 'Comandante', shortLabel: 'Despegue', description: 'Nombre y arranque' },
+] as Array<{ id: string; label: string; shortLabel: string; description: string }>;
+
+function MissionStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded border border-outline-variant bg-surface-container/70 px-gutter-sm py-gutter-xs">
+      <dt className="font-body text-[10px] uppercase tracking-wider text-on-surface-variant">
+        {label}
+      </dt>
+      <dd className="mt-0.5 font-mono text-mono-sm tabular-nums text-on-surface">{value}</dd>
+    </div>
+  );
 }
 
 export function MissionSetupTemplate({
@@ -65,136 +105,160 @@ export function MissionSetupTemplate({
   missionId,
   role,
   missions,
+  gameMode = 'SOLO',
   onChange,
   onSubmit,
   onJoin,
   error,
   busy = false,
 }: MissionSetupTemplateProps) {
+  const [step, setStep] = useState(0);
   const [joinCode, setJoinCode] = useState('');
   const mission = missions.find((item) => item.id === missionId) ?? missions[0];
+  const story = mission?.story ?? mission?.realNasaReference.summary;
+  const objectives = mission?.objectives ?? [];
+  const progress = (step / (STEPS.length - 1)) * 100;
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (gameMode === 'TEAM' && joinCode.trim()) {
+      onJoin(joinCode.trim());
+      return;
+    }
     onSubmit();
   };
 
-  return (
-    <main className="flex flex-1 items-center justify-center p-gutter-lg">
-      <section
-        aria-labelledby="setup-title"
-        className="flex w-full max-w-xl flex-col gap-gutter-lg rounded-md border border-outline-variant bg-surface-container-low p-gutter-xl shadow-console"
-      >
-        <div className="flex flex-col gap-gutter-xs">
-          <span className="font-mono text-mono-sm text-primary">REGISTRO DE MISIÓN</span>
-          <h1
-            id="setup-title"
-            className="font-headline text-headline-lg text-on-surface text-balance"
-          >
-            Configurar nueva misión
-          </h1>
-          <p className="font-body text-body-md text-on-surface-variant">
-            Elige dificultad, escenario y segmento. Después podrás montar la nave en la mesa
-            de diseño concurrente.
-          </p>
-        </div>
+  const goBack = () => setStep((current) => Math.max(current - 1, 0));
+  const goNext = () => setStep((current) => Math.min(current + 1, STEPS.length - 1));
 
-        <form className="flex flex-col gap-gutter-lg" onSubmit={handleSubmit} noValidate>
-          <div className="flex flex-col gap-gutter-sm">
-            <span className="font-headline text-headline-md text-on-surface">
-              Seleccione la dificultad
-            </span>
-            <div
-              className="grid grid-cols-1 gap-gutter-md sm:grid-cols-2"
-              role="radiogroup"
-              aria-label="Selección de dificultad"
-            >
-              {DIFFICULTIES.map((item) => {
-                const selected = difficulty === item.id;
-                const Icon = selected ? CheckCircle2 : Circle;
-                const ItemIcon = item.icon;
+  const renderStep = () => {
+    switch (step) {
+      case 0:
+        return (
+          <StepShell
+            key="mode"
+            title="Elige cómo quieres operar"
+            subtitle="Puedes resolver la misión por tu cuenta o cooperar con otros operadores."
+          >
+            <div className="grid gap-gutter-md sm:grid-cols-2" role="group" aria-label="Modo de juego">
+              {[
+                {
+                  id: 'SOLO' as const,
+                  title: '1 jugador',
+                  subtitle: 'Asesores virtuales',
+                  description: 'Cubre los cuatro segmentos con apoyo automático y decide a tu ritmo.',
+                  icon: UserRound,
+                  chip: 'Modo solitario',
+                },
+                {
+                  id: 'TEAM' as const,
+                  title: '1–4 jugadores',
+                  subtitle: 'Cooperativo en tiempo real',
+                  description: 'Cada operador protege un segmento. El host comparte el código de sala.',
+                  icon: Users,
+                  chip: 'Modo equipo',
+                },
+              ].map((item) => {
+                const selected = gameMode === item.id;
+                const Icon = item.icon;
                 return (
                   <button
                     key={item.id}
                     type="button"
-                    data-difficulty={item.id.toLowerCase()}
                     aria-pressed={selected}
-                    onClick={() => onChange({ difficulty: item.id })}
+                    onClick={() => onChange({ gameMode: item.id })}
                     className={cn(
-                      'relative flex flex-col items-center gap-gutter-sm rounded-md p-gutter-md text-center transition-colors duration-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary',
+                      'group relative flex min-h-44 flex-col gap-gutter-sm rounded-md border p-gutter-md text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary',
                       selected
-                        ? 'border-2 border-primary bg-surface-container-high'
-                        : 'border border-outline bg-surface-container hover:border-primary hover:bg-surface-container-high',
+                        ? 'border-primary bg-primary/10 shadow-glow'
+                        : 'border-outline-variant bg-surface-container/60 hover:-translate-y-0.5 hover:border-primary/50 hover:bg-surface-container-high',
                     )}
                   >
-                    <Icon
-                      className={cn(
-                        'absolute right-gutter-sm top-gutter-sm h-4 w-4',
-                        selected ? 'text-primary' : 'text-on-surface-variant opacity-40',
-                      )}
-                      aria-hidden="true"
-                    />
+                    <span className="absolute right-gutter-sm top-gutter-sm rounded-full border border-primary/30 bg-primary/10 p-1.5 text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                      <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                    </span>
                     <div
                       className={cn(
-                        'flex aspect-square w-[72%] items-center justify-center rounded-md border',
+                        'flex h-12 w-12 items-center justify-center rounded border',
                         selected
-                          ? 'border-primary/40 bg-surface-container text-primary'
-                          : 'border-outline bg-surface-container-low text-accent',
+                          ? 'border-primary/40 bg-primary/15 text-primary'
+                          : 'border-outline-variant bg-surface-container-low text-on-surface-variant group-hover:text-primary',
                       )}
-                      aria-hidden="true"
                     >
-                      <ItemIcon className="h-10 w-10" />
+                      <Icon className="h-6 w-6" aria-hidden="true" />
                     </div>
-                    <span className="font-title text-title-md text-on-surface">
-                      {item.label}
+                    <span className="font-label text-label-lg text-on-surface">{item.title}</span>
+                    <span className="font-mono text-mono-xs uppercase tracking-wider text-primary">
+                      {item.subtitle}
                     </span>
-                    <span className="font-body text-body-md text-on-surface-variant">
+                    <span className="font-body text-body-md leading-snug text-on-surface-variant">
                       {item.description}
                     </span>
                   </button>
                 );
               })}
             </div>
-          </div>
+            <StepFooter onNext={goNext} canGoBack={false} />
+          </StepShell>
+        );
 
-          <div className="flex flex-col gap-gutter-sm">
-            <label
-              htmlFor="mission-select"
-              className="font-label text-label-lg text-on-surface"
-            >
-              Escenario de misión
-            </label>
-            <select
-              id="mission-select"
-              name="mission"
-              value={missionId}
-              onChange={(event) => onChange({ missionId: event.target.value })}
-              className="w-full rounded border border-outline bg-surface-container px-gutter-md py-gutter-sm font-body text-body-md text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              {missions.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.title} · {item.orbitType}
-                </option>
-              ))}
-            </select>
-            {mission && (
-              <div className="flex flex-wrap gap-x-gutter-md gap-y-gutter-xs rounded border border-outline-variant bg-surface-container/60 px-gutter-sm py-gutter-xs font-mono text-mono-sm text-on-surface-variant">
-                <span>{ORBIT_LABEL[mission.orbitType]}</span>
-                <span>{mission.budgetMillions.toLocaleString('es-ES')} M$</span>
-                <span>{mission.maxLauncherMassKg.toLocaleString('es-ES')} kg máx.</span>
-                <span>{mission.targetSciencePoints} pts ciencia</span>
-                <span>{Math.round(mission.requiredDownlinkRatio * 100)}% bajada</span>
-              </div>
-            )}
-          </div>
+      case 1:
+        return (
+          <StepShell
+            key="difficulty"
+            title="Define la experiencia"
+            subtitle="Aprendiz guía cada decisión. Ingeniero exige lectura completa de telemetría."
+          >
+            <div className="grid gap-gutter-md sm:grid-cols-2" role="group" aria-label="Tipo de jugador">
+              {DIFFICULTIES.map((item) => {
+                const selected = difficulty === item.id;
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => onChange({ difficulty: item.id })}
+                    className={cn(
+                      'group flex flex-col gap-gutter-sm rounded-md border p-gutter-md text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary',
+                      selected
+                        ? 'border-accent/70 bg-accent/10 shadow-[0_0_28px_-14px_rgba(245,158,11,0.7)]'
+                        : 'border-outline-variant bg-surface-container/60 hover:-translate-y-0.5 hover:border-accent/60 hover:bg-surface-container-high',
+                    )}
+                  >
+                    <Icon className={cn('h-8 w-8', selected ? 'text-accent' : 'text-on-surface-variant group-hover:text-accent')} aria-hidden="true" />
+                    <span className="font-title text-title-md text-on-surface">{item.label}</span>
+                    <span className="font-body text-body-md leading-snug text-on-surface-variant">
+                      {item.description}
+                    </span>
+                    <ul className="space-y-1 border-t border-outline-variant pt-gutter-sm">
+                      {item.details.map((detail) => (
+                        <li key={detail} className="flex items-center gap-1.5 font-body text-[11px] text-on-surface-variant">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-success" aria-hidden="true" />
+                          {detail}
+                        </li>
+                      ))}
+                    </ul>
+                  </button>
+                );
+              })}
+            </div>
+            <StepFooter onBack={goBack} onNext={goNext} />
+          </StepShell>
+        );
 
-          <div className="flex flex-col gap-gutter-sm">
-            <span className="font-label text-label-lg text-on-surface">Tu segmento</span>
-            <div className="grid grid-cols-1 gap-gutter-sm sm:grid-cols-2" role="radiogroup" aria-label="Selección de rol">
+      case 2:
+        return (
+          <StepShell
+            key="role"
+            title="Elige tu segmento"
+            subtitle="Cada rol ve una parte distinta del problema. Ningún segmento puede salvar la misión solo."
+          >
+            <div className="grid gap-gutter-sm sm:grid-cols-2" role="group" aria-label="Selección de rol">
               {ROLE_ORDER.map((roleId) => {
                 const meta = ROLE_META[roleId];
-                const selected = role === roleId;
                 const Icon = meta.icon;
+                const selected = role === roleId;
                 return (
                   <button
                     key={roleId}
@@ -202,31 +266,38 @@ export function MissionSetupTemplate({
                     aria-pressed={selected}
                     onClick={() => onChange({ role: roleId })}
                     className={cn(
-                      'flex items-start gap-gutter-sm rounded border p-gutter-sm text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary',
+                      'flex min-h-24 items-start gap-gutter-sm rounded border p-gutter-sm text-left transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary',
                       selected
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-outline bg-surface-container text-on-surface hover:border-primary/60 hover:bg-surface-container-high',
+                        ? 'border-primary/60 bg-primary/10 shadow-[0_0_20px_-16px_rgba(56,189,248,0.95)]'
+                        : 'border-outline-variant bg-surface-container/60 hover:-translate-y-0.5 hover:border-primary/50 hover:bg-surface-container-high',
                     )}
                   >
-                    <Icon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                    <span className="flex min-w-0 flex-col">
-                      <span className="font-label text-label-lg">{meta.label}</span>
-                      <span className="font-body text-[11px] leading-tight text-on-surface-variant">
-                        {meta.responsibility}
+                    <div className={cn('rounded border p-2', selected ? 'border-primary/40 bg-primary/15 text-primary' : 'border-outline bg-surface-container-low text-on-surface-variant')}>
+                      <Icon className="h-5 w-5" aria-hidden="true" />
+                    </div>
+                    <span className="min-w-0">
+                      <span className="block font-label text-label-lg text-on-surface">{meta.label}</span>
+                      <span className="mt-1 block font-body text-[11px] leading-snug text-on-surface-variant">
+                        {ROLE_TEASER[roleId]}
                       </span>
                     </span>
                   </button>
                 );
               })}
             </div>
-          </div>
+            <StepFooter onBack={goBack} onNext={goNext} />
+          </StepShell>
+        );
 
-          <div className="flex flex-col gap-gutter-sm">
-            <label
-              htmlFor="commander-name"
-              className="font-label text-label-lg text-on-surface"
-            >
-              Nombre
+      default:
+        return (
+          <StepShell
+            key="commander"
+            title="Comandante, ¿listo para despegar?"
+            subtitle="Tu nombre queda registrado antes de abrir la sala y la mesa de diseño."
+          >
+            <label htmlFor="commander-name" className="font-label text-label-lg text-on-surface">
+              Nombre del comandante
             </label>
             <input
               id="commander-name"
@@ -234,64 +305,270 @@ export function MissionSetupTemplate({
               type="text"
               required
               maxLength={24}
+              autoFocus
               value={playerName}
               onChange={(event) => onChange({ playerName: event.target.value })}
               placeholder="Ej. Comandante Vega"
               className="w-full rounded border border-outline bg-surface-container px-gutter-md py-gutter-sm font-body text-body-md text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
-          </div>
 
-          {error && (
-            <p className="rounded border border-error/40 bg-error/10 px-gutter-sm py-gutter-xs font-body text-body-md text-error" role="alert">
-              {error}
-            </p>
-          )}
+            <div className="rounded border border-primary/20 bg-primary/5 p-gutter-sm">
+              <p className="font-label text-label-sm text-primary">Resumen de despliegue</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <SummaryPill>{gameMode === 'SOLO' ? '1 jugador' : '1–4 jugadores'}</SummaryPill>
+                <SummaryPill>{difficulty === 'APPRENTICE' ? 'Aprendiz' : 'Ingeniero'}</SummaryPill>
+                <SummaryPill>{ROLE_META[role].label}</SummaryPill>
+                <SummaryPill>{mission?.title ?? 'Misión'}</SummaryPill>
+              </div>
+            </div>
 
-          <ActionButton type="submit" icon={Rocket} fullWidth disabled={busy}>
-            {busy ? 'Preparando sala…' : 'Comenzar'}
-          </ActionButton>
+            {gameMode === 'TEAM' && (
+              <div className="flex flex-col gap-gutter-sm rounded border border-outline-variant bg-surface-container/70 p-gutter-sm">
+                <label htmlFor="room-code" className="font-label text-label-sm text-on-surface">
+                  ¿Te invitaron a una sala? Ingresa su código (opcional)
+                </label>
+                <input
+                  id="room-code"
+                  name="roomCode"
+                  type="text"
+                  value={joinCode}
+                  maxLength={12}
+                  autoComplete="off"
+                  onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
+                  placeholder="A1B2C3"
+                  className="w-full rounded border border-outline bg-surface-container px-gutter-md py-gutter-xs font-mono text-mono-sm uppercase tracking-wider text-primary placeholder:text-on-surface-variant focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <p className="font-body text-[11px] text-on-surface-variant">
+                  Déjalo vacío para crear una sala nueva para tu equipo.
+                </p>
+              </div>
+            )}
 
-          <div className="flex items-center gap-gutter-sm" aria-hidden="true">
-            <span className="h-px flex-1 bg-outline-variant" />
-            <span className="font-body text-[11px] uppercase tracking-wider text-on-surface-variant">
-              Sesión cooperativa
-            </span>
-            <span className="h-px flex-1 bg-outline-variant" />
-          </div>
+            {error && (
+              <p role="alert" className="rounded border border-error/40 bg-error/10 px-gutter-sm py-gutter-xs font-body text-body-md text-error">
+                {error}
+              </p>
+            )}
 
-          <div className="flex flex-col gap-gutter-sm">
-            <label
-              htmlFor="room-code"
-              className="flex items-center gap-2 font-label text-label-lg text-on-surface"
-            >
-              <Users className="h-4 w-4 text-primary" aria-hidden="true" />
-              Unirse a una sala existente
-            </label>
-            <div className="flex flex-col gap-gutter-sm sm:flex-row">
-              <input
-                id="room-code"
-                name="roomCode"
-                type="text"
-                value={joinCode}
-                maxLength={12}
-                onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
-                placeholder="Código de sala (ej. A1B2C3)"
-                className="min-w-0 flex-1 rounded border border-outline bg-surface-container px-gutter-md py-gutter-sm font-mono text-mono-sm uppercase text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
+            <div className="flex flex-col gap-gutter-sm sm:flex-row sm:items-center sm:justify-between">
+              <button type="button" onClick={goBack} className="inline-flex items-center gap-1.5 font-label text-label-lg text-on-surface-variant transition-colors hover:text-on-surface">
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                Volver
+              </button>
               <ActionButton
-                variant="secondary"
-                onClick={() => onJoin(joinCode.trim())}
-                disabled={joinCode.trim().length < 4}
+                type="submit"
+                icon={Rocket}
+                disabled={
+                  busy ||
+                  !playerName.trim() ||
+                  (gameMode === 'TEAM' && Boolean(joinCode.trim()) && joinCode.trim().length < 4)
+                }
+                className="w-full sm:w-auto"
               >
-                Entrar
+                {busy
+                  ? 'Preparando sala…'
+                  : gameMode === 'TEAM' && joinCode.trim()
+                    ? 'Unirme a la sala'
+                    : gameMode === 'TEAM'
+                      ? 'Crear equipo y comenzar'
+                      : 'Comenzar simulación'}
               </ActionButton>
             </div>
-            <p className="font-body text-[11px] text-on-surface-variant">
-              El host debe permanecer en la sala de espera hasta que todos elijan su segmento.
-            </p>
+          </StepShell>
+        );
+    }
+  };
+
+  return (
+    <main className="flex min-h-screen flex-1 items-center justify-center overflow-y-auto p-gutter-md sm:p-gutter-lg">
+      <section aria-labelledby="setup-title" className="grid w-full max-w-6xl overflow-hidden rounded-md border border-outline-variant bg-surface-container-low shadow-console lg:grid-cols-[1.16fr_0.84fr]">
+        <form className="console-grid flex min-h-[640px] flex-col gap-gutter-md p-gutter-lg" onSubmit={handleSubmit} noValidate>
+          <header className="flex flex-wrap items-start justify-between gap-gutter-md">
+            <div className="flex max-w-lg flex-col gap-gutter-xs">
+              <span className="font-mono text-mono-sm text-primary">REGISTRO DE MISIÓN</span>
+              <h1 id="setup-title" className="font-headline text-headline-lg text-on-surface text-balance">
+                    Prepara tu misión espacial
+              </h1>
+              <p className="font-body text-body-md text-on-surface-variant">
+                Responde cuatro decisiones operativas. La sala se abre cuando confirmes el despegue.
+              </p>
+            </div>
+            <Pill tone="primary" className="shrink-0">Paso {step + 1}/{STEPS.length}</Pill>
+          </header>
+
+          <div className="h-1.5 overflow-hidden rounded-full bg-outline-variant" role="progressbar" aria-label="Progreso del registro" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}>
+            <div className="h-full rounded-full bg-gradient-to-r from-primary via-cyan-300 to-secondary transition-all duration-500" style={{ width: `${progress}%` }} />
           </div>
+
+          <ol className="grid grid-cols-4 gap-1" aria-label="Pasos del registro">
+            {STEPS.map((item, index) => {
+              const state = index < step ? 'complete' : index === step ? 'current' : 'pending';
+              return (
+                <li key={item.id}>
+                  <div
+                    aria-current={state === 'current' ? 'step' : undefined}
+                    className={cn(
+                      'flex w-full flex-col items-center gap-1 rounded border px-1 py-2 text-center transition-colors duration-200 sm:flex-row sm:px-2',
+                      state === 'current' && 'border-primary/50 bg-primary/10 text-primary',
+                      state === 'complete' && 'border-success/30 bg-success/5 text-success',
+                      state === 'pending' && 'border-transparent text-on-surface-variant',
+                    )}
+                  >
+                    <span className={cn('flex h-6 w-6 shrink-0 items-center justify-center rounded-full border font-mono text-[10px]', state === 'current' ? 'border-primary bg-primary text-on-primary' : state === 'complete' ? 'border-success bg-success text-on-success' : 'border-outline-variant')}>
+                      {state === 'complete' ? '✓' : index + 1}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-label text-[11px] leading-tight sm:text-label-sm">{item.label}</span>
+                      <span className="hidden font-body text-[10px] text-on-surface-variant xl:block">{item.description}</span>
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+
+          <div className="flex flex-1 flex-col">{renderStep()}</div>
+
         </form>
+
+        <aside className="flex flex-col gap-gutter-md border-t border-outline-variant bg-[#101725]/90 p-gutter-lg lg:border-l lg:border-t-0" aria-label="Escenario de misión">
+          <SectionTitle icon={Satellite} right={<Pill tone="muted">{missions.length} rutas</Pill>}>
+            Briefing de misión
+          </SectionTitle>
+          <div className="flex snap-x gap-gutter-sm overflow-x-auto pb-1 lg:flex-col lg:overflow-visible" role="group" aria-label="Selecciona un escenario">
+            {missions.map((item) => {
+              const active = mission?.id === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => onChange({ missionId: item.id })}
+                  className={cn(
+                    'group min-w-44 snap-start rounded border p-gutter-sm text-left transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary',
+                    active
+                      ? 'border-primary bg-primary/10'
+                      : 'border-outline-variant bg-surface-container/60 hover:border-primary/50 hover:bg-surface-container',
+                  )}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="font-label text-label-sm text-on-surface">{item.title}</span>
+                    {active && <BadgeCheck className="h-4 w-4 text-primary" aria-hidden="true" />}
+                  </span>
+                  <span className="mt-1 block font-mono text-[10px] uppercase text-primary">{item.orbitType}</span>
+                  <span className="mt-2 block font-body text-[11px] leading-snug text-on-surface-variant">
+                    {item.realNasaReference.missionName} · {item.targetSciencePoints} pts
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {mission && (
+            <article className="flex flex-col gap-gutter-sm">
+              <MissionIllustration mission={mission} className="w-full" />
+              {mission.imageCredit && (
+                <p className="font-body text-[10px] text-on-surface-variant">
+                  Imagen: {mission.imageCredit}
+                </p>
+              )}
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Pill tone="success" icon={ShieldCheck}>{ORBIT_LABEL[mission.orbitType]}</Pill>
+                  <Pill tone="muted">Escenario didáctico</Pill>
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-on-surface-variant">
+                    ref. {mission.realNasaReference.missionName}
+                  </span>
+                </div>
+                <h2 className="mt-2 font-headline text-headline-md text-on-surface">{mission.title}</h2>
+                {story && <p className="mt-1 font-body text-body-md leading-snug text-on-surface-variant">{story}</p>}
+              </div>
+              <dl className="grid grid-cols-2 gap-gutter-xs">
+                <MissionStat label="Presupuesto" value={`${mission.budgetMillions.toLocaleString('es-ES')} M$`} />
+                <MissionStat label="Masa máx." value={`${mission.maxLauncherMassKg.toLocaleString('es-ES')} kg`} />
+                <MissionStat label="Ciencia" value={`${mission.targetSciencePoints} pts`} />
+                <MissionStat label="Bajada" value={`${Math.round(mission.requiredDownlinkRatio * 100)}%`} />
+              </dl>
+              {mission.objectives && mission.objectives.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {mission.objectives.map((objective) => (
+                    <span key={objective} className="rounded-full border border-success/30 bg-success/10 px-2 py-0.5 font-mono text-[10px] text-success">
+                      {objective}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="mt-auto rounded border border-accent/25 bg-accent/5 p-gutter-sm">
+                <p className="font-label text-label-sm text-accent">Lección de ingeniería</p>
+                <p className="mt-1 font-body text-body-md leading-snug text-on-surface-variant">
+                  {mission.realNasaReference.engineeringLesson}
+                </p>
+                <a href={mission.realNasaReference.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 font-label text-label-sm text-primary hover:underline">
+                  Ver ficha oficial <ArrowRight className="h-3 w-3" aria-hidden="true" />
+                </a>
+              </div>
+            </article>
+          )}
+        </aside>
       </section>
     </main>
+  );
+}
+
+function StepShell({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="animate-setup-enter flex flex-1 flex-col gap-gutter-md" aria-labelledby={`step-${title}`}>
+      <div>
+        <h2 id={`step-${title}`} className="font-headline text-headline-md text-on-surface">
+          {title}
+        </h2>
+        <p className="mt-1 font-body text-body-md text-on-surface-variant">{subtitle}</p>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function StepFooter({
+  onBack,
+  onNext,
+  canGoBack = true,
+}: {
+  onBack?: () => void;
+  onNext: () => void;
+  canGoBack?: boolean;
+}) {
+  return (
+    <div className="mt-auto flex items-center justify-between gap-gutter-md border-t border-outline-variant pt-gutter-md">
+      {canGoBack && onBack ? (
+        <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 font-label text-label-lg text-on-surface-variant transition-colors hover:text-on-surface">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Volver
+        </button>
+      ) : (
+        <span />
+      )}
+      <button type="button" onClick={onNext} className="group inline-flex items-center gap-2 rounded border border-primary/50 bg-primary/15 px-gutter-md py-gutter-sm font-label text-label-lg text-primary transition-all hover:bg-primary hover:text-on-primary">
+        Continuar
+        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+function SummaryPill({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-surface-container px-2 py-1 font-body text-[10px] text-on-surface">
+      <Sparkles className="h-3 w-3 text-primary" aria-hidden="true" />
+      {children}
+    </span>
   );
 }

@@ -8,6 +8,14 @@
     "targetSciencePoints": 45,
     "requiredDownlinkRatio": 0.75,
     "groundStationId": "leo-ground-station",
+    "story": "Una constelación de pequeños satélites observará el entorno que rodea la Tierra desde una órbita baja. Para convertir mediciones dispersas en una imagen útil, la tripulación tendrá que coordinar sus instrumentos, conservar energía y enviar los datos a tiempo. Este escenario didáctico toma como referencia la coordinación orbital de misiones como PUNCH.",
+    "objectives": [
+      "Coordinar observaciones en órbita baja",
+      "Alcanzar 45 puntos científicos",
+      "Descargar al menos el 75% de los datos"
+    ],
+    "imageUrl": "https://images-assets.nasa.gov/image/iss074e0301636/iss074e0301636~medium.jpg",
+    "imageCredit": "NASA/JSC",
     "realNasaReference": {
       "missionName": "PUNCH",
       "summary": "Misión de heliofísica que observa el viento solar desde una constelación en órbita terrestre baja.",
@@ -24,6 +32,14 @@
     "targetSciencePoints": 70,
     "requiredDownlinkRatio": 0.65,
     "groundStationId": "deep-space-ground-station",
+    "story": "Tu sonda cartografiará una región de la Luna para reconocer cráteres, variaciones del terreno y zonas de interés para futuras exploraciones. Cada pasada orbital es una oportunidad limitada: diseña una nave que mida con precisión y mantenga el enlace con la Tierra mientras recorre el objetivo.",
+    "objectives": [
+      "Cartografiar la región lunar durante varias pasadas",
+      "Alcanzar 70 puntos científicos",
+      "Recuperar al menos el 65% de los datos"
+    ],
+    "imageUrl": "https://images-assets.nasa.gov/image/PIA13008/PIA13008~small.jpg",
+    "imageCredit": "NASA/GSFC/Arizona State University",
     "realNasaReference": {
       "missionName": "Lunar Reconnaissance Orbiter",
       "summary": "Orbitador de NASA que caracteriza la Luna y produce datos para ciencia y exploración.",
@@ -40,6 +56,14 @@
     "targetSciencePoints": 85,
     "requiredDownlinkRatio": 0.5,
     "groundStationId": "deep-space-ground-station",
+    "story": "Una nave de largo recorrido viajará hasta cuerpos pequeños del sistema solar para estudiar cómo se formaron. Lejos de la Tierra, cada unidad de energía y cada ventana de comunicación cuentan: prioriza instrumentos, protege la propulsión y decide qué datos vale la pena transmitir.",
+    "objectives": [
+      "Planificar una exploración de larga duración",
+      "Alcanzar 85 puntos científicos",
+      "Transmitir al menos el 50% de los datos"
+    ],
+    "imageUrl": "https://images-assets.nasa.gov/image/PIA18921/PIA18921~medium.jpg",
+    "imageCredit": "NASA/JPL-Caltech",
     "realNasaReference": {
       "missionName": "Dawn",
       "summary": "Misión interplanetaria de NASA que exploró Vesta y Ceres usando propulsión iónica.",

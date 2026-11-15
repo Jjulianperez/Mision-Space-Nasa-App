@@ -92,6 +92,14 @@
   .pulse-soft {
     animation: pulse-soft 2.4s ease-in-out infinite;
   }
+
+  .animate-setup-enter {
+    animation: setup-enter 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .home-orbit-illustration {
+    animation: orbit-drift 8s ease-in-out infinite;
+  }
 }
 
 @keyframes blueprint-scan {
@@ -118,9 +126,34 @@
   }
 }
 
+@keyframes setup-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes orbit-drift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .blueprint-scan,
-  .pulse-soft {
+  .pulse-soft,
+  .animate-setup-enter,
+  .home-orbit-illustration {
     animation: none;
   }
 }
