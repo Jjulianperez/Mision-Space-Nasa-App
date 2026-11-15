@@ -78,7 +78,7 @@ function HeroOrbit() {
   return (
     <svg
       viewBox="0 0 520 420"
-      className="h-full w-full"
+      className="home-orbit-illustration h-full w-full"
       role="img"
       aria-label="Esquema orbital de una misión con cuatro segmentos"
     >
@@ -250,7 +250,7 @@ export function HomeScreen({ onStart }: { onStart: () => void }) {
           </div>
         </section>
 
-        <section className="flex flex-col gap-gutter-lg">
+        <section id="segmentos" className="flex flex-col gap-gutter-lg scroll-mt-8">
           <div className="flex flex-col gap-gutter-xs">
             <span className="font-mono text-mono-sm text-primary">LOS 4 SEGMENTOS NASA</span>
             <h2 className="font-headline text-headline-lg text-on-surface">
@@ -277,7 +277,7 @@ export function HomeScreen({ onStart }: { onStart: () => void }) {
           </div>
         </section>
 
-        <section className="grid grid-cols-1 gap-gutter-lg lg:grid-cols-2">
+        <section id="dificultad" className="grid grid-cols-1 gap-gutter-lg scroll-mt-8 lg:grid-cols-2">
           {LEVELS.map((level) => {
             const Icon = level.icon;
             const isApprentice = level.id === 'APPRENTICE';

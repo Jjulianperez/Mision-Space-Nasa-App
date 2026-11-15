@@ -268,6 +268,41 @@ function CenterColumn() {
 
   return (
     <section className="bg-[#090D16] flex flex-col overflow-hidden">
+      <div className="shrink-0 border-b border-white/10 bg-[#0F1623]/70 px-3 py-2.5">
+        <div className="flex items-center gap-3">
+          {mission?.imageUrl ? (
+            <img
+              src={mission.imageUrl}
+              alt={mission.title}
+              className="h-14 w-24 shrink-0 rounded border border-white/10 object-cover bg-[#131A29]"
+            />
+          ) : (
+            <div className="h-14 w-24 shrink-0 rounded border border-white/10 bg-gradient-to-b from-[#1C2538] to-[#131A29] flex items-center justify-center">
+              <Rocket className="h-6 w-6 text-cyan-400/70" aria-hidden="true" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-cyan-400">Misión</span>
+              <span className="font-mono text-[10px] uppercase tracking-wider text-slate-400">· {mission?.orbitType ?? 'LEO'}</span>
+            </div>
+            <h3 className="font-headline text-headline-md text-white truncate">{mission?.title ?? 'Misión sin designar'}</h3>
+            {mission?.story && (
+              <p className="font-body text-body-md text-slate-300 mt-0.5 line-clamp-2">{mission.story}</p>
+            )}
+            {mission?.objectives && mission.objectives.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {mission.objectives.map((objective, index) => (
+                  <span key={`${objective}-${index}`} className="inline-flex items-center px-1.5 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 font-mono text-mono-xs text-emerald-300">
+                    {objective}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="flex-1 relative overflow-hidden">
         <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded bg-black/40 text-slate-300 hover:text-white hover:bg-black/60 transition-colors" aria-label="Vista anterior">
           <ChevronLeft className="h-5 w-5" aria-hidden="true" />

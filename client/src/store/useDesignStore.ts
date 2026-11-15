@@ -8,6 +8,7 @@ import type {
   DifficultyMode,
   FlightActionType,
   FlightCrisisAlert,
+  GameMode,
   GamePhase,
   MissionConfig,
   MissionReport,
@@ -202,6 +203,7 @@ export interface StartMissionInput {
   difficulty: DifficultyMode;
   missionId: string;
   role: RoleType;
+  gameMode?: GameMode;
 }
 
 // ---- Store ----
@@ -210,6 +212,7 @@ interface DesignStore {
   socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
   connected: boolean;
   localMode: boolean;
+  gameMode: GameMode;
   // flow
   showHome: boolean;
   hasRoom: boolean;
@@ -220,6 +223,7 @@ interface DesignStore {
   missionId: string;
   desiredRole: RoleType;
   autoRolePending: boolean;
+  autoStartDesignPending: boolean;
   phase: GamePhase;
   roomState: RoomState | null;
   // flight / report
@@ -277,6 +281,7 @@ export const useDesignStore = create<DesignStore>()((set, get) => ({
   socket: null,
   connected: false,
   localMode: false,
+  gameMode: 'SOLO',
 
   showHome: true,
   hasRoom: false,
@@ -287,6 +292,7 @@ export const useDesignStore = create<DesignStore>()((set, get) => ({
   missionId: CATALOG_MISSIONS[0]?.id ?? 'leo-earth-observation',
   desiredRole: 'PROPULSION',
   autoRolePending: false,
+  autoStartDesignPending: false,
   phase: 'LOBBY',
   roomState: null,
 
@@ -396,6 +402,17 @@ export const useDesignStore = create<DesignStore>()((set, get) => ({
         set({ autoRolePending: false });
         socket.emit('role:select', { roomId: state.roomId, role: get().desiredRole });
       }
+
+      if (
+        state.phase === 'LOBBY' &&
+        me?.role &&
+        me.ready &&
+        get().autoStartDesignPending &&
+        state.hostId === socket.id
+      ) {
+        set({ autoStartDesignPending: false });
+        socket.emit('room:start', { roomId: state.roomId });
+      }
     });
 
     socket.on('design:advisor_feedback', (messages: string[]) => {
@@ -458,6 +475,8 @@ export const useDesignStore = create<DesignStore>()((set, get) => ({
       return;
     }
     clearLocalFlight();
+    const soloMode = (input.gameMode ?? 'SOLO') === 'SOLO';
+    const socket = get().socket;
     set({
       playerName: input.playerName,
       difficulty: input.difficulty,
@@ -465,6 +484,9 @@ export const useDesignStore = create<DesignStore>()((set, get) => ({
       desiredRole: input.role,
       myRole: input.role,
       autoRolePending: true,
+      autoStartDesignPending: Boolean(
+        soloMode && socket && get().connected && !get().localMode,
+      ),
       hasRoom: false,
       showHome: false,
       phase: 'LOBBY',
@@ -472,9 +494,9 @@ export const useDesignStore = create<DesignStore>()((set, get) => ({
       flight: null,
       crisisAlert: null,
       report: null,
+      gameMode: input.gameMode ?? 'SOLO',
     });
 
-    const socket = get().socket;
     if (socket && get().connected && !get().localMode) {
       socket.emit('room:create', {
         playerName: input.playerName,
@@ -498,6 +520,7 @@ export const useDesignStore = create<DesignStore>()((set, get) => ({
     );
     get()._applyRoomState(room);
     set({ localMode: true, autoRolePending: false });
+    if (soloMode) get().beginDesign();
     get().notify('Sesión local iniciada con los catálogos de /data.', 'info');
   },
 
@@ -518,6 +541,7 @@ export const useDesignStore = create<DesignStore>()((set, get) => ({
     set({
       playerName: name,
       autoRolePending: false,
+      autoStartDesignPending: false,
       showHome: false,
       flight: null,
       crisisAlert: null,
@@ -538,6 +562,7 @@ export const useDesignStore = create<DesignStore>()((set, get) => ({
       roomState: null,
       phase: 'LOBBY',
       myRole: null,
+      autoStartDesignPending: false,
       selectedModules: [],
       telemetry: null,
       audit: null,
@@ -545,6 +570,7 @@ export const useDesignStore = create<DesignStore>()((set, get) => ({
       flight: null,
       crisisAlert: null,
       report: null,
+      gameMode: 'SOLO',
     });
   },
 
@@ -580,6 +606,7 @@ export const useDesignStore = create<DesignStore>()((set, get) => ({
       missionId: CATALOG_MISSIONS[0]?.id ?? 'leo-earth-observation',
       desiredRole: 'PROPULSION',
       autoRolePending: false,
+      autoStartDesignPending: false,
       phase: 'LOBBY',
       roomState: null,
       myRole: null,
@@ -591,6 +618,7 @@ export const useDesignStore = create<DesignStore>()((set, get) => ({
       audit: null,
       activeVote: null,
       mission: null,
+      gameMode: 'SOLO',
     });
   },
 
