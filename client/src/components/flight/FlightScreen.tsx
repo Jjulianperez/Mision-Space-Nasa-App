@@ -660,6 +660,8 @@ export function FlightScreen() {
     <div className="flex min-h-screen flex-col bg-surface text-on-surface">
       <FlightConsoleTemplate
         mode={difficulty}
+        role={flight.role}
+        orbitType={mission?.orbitType ?? 'LEO'}
         progress={flight.progress}
         actLabel={ACT_LABEL[flight.act]}
         orbitLabel={`${mission?.title ?? 'Misión'} · ${mission?.orbitType ?? 'LEO'}`}
