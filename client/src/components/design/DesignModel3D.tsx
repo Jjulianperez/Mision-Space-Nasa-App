@@ -622,6 +622,9 @@ export function DesignModel3D({ view, hasEST, hasSCI, hasCOM, resetKey }: Design
     renderer.shadowMap.type = THREE.PCFShadowMap;
     container.appendChild(renderer.domElement);
     renderer.domElement.style.cursor = 'grab';
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
+    renderer.domElement.style.display = 'block';
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -658,6 +661,8 @@ export function DesignModel3D({ view, hasEST, hasSCI, hasCOM, resetKey }: Design
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
+      renderer.domElement.style.width = '100%';
+      renderer.domElement.style.height = '100%';
     };
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(container);
