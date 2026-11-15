@@ -58,5 +58,80 @@
       "prompt": "Confirma el ajuste de navegación: ingresa NAV-OK.",
       "answer": "NAV-OK"
     }
+  },
+  {
+    "id": "space-radiation-storm",
+    "title": "Tormenta de radiación espacial",
+    "trigger": "SPACE_RADIATION",
+    "severity": "HIGH",
+    "description": "Los sensores detectan un aumento crítico de rayos cósmicos y partículas solares fuera del campo magnético terrestre.",
+    "rootCause": "La trayectoria interplanetaria expone a la tripulación a radiación ionizante sin protección de la magnetosfera.",
+    "recommendation": "Activar el blindaje adicional del módulo habitacional o resguardar a la tripulación en la zona protegida.",
+    "puzzle": {
+      "id": "radiation-shield",
+      "role": "PROPULSION",
+      "prompt": "Activa el protocolo de blindaje anti-radiación: ingresa SHIELD-MAX.",
+      "answer": "SHIELD-MAX"
+    }
+  },
+  {
+    "id": "fluid-shift-vision",
+    "title": "Desplazamiento de fluidos y presión ocular",
+    "trigger": "FLUID_SHIFT_SANS",
+    "severity": "HIGH",
+    "description": "La microgravedad desplaza los fluidos hacia la cabeza, provocando presión ocular y dificultad visual para operar consolas.",
+    "rootCause": "Ausencia de gravedad que impide el drenaje normal de fluidos corporales hacia las extremidades inferiores.",
+    "recommendation": "Ajustar el contraste de las pantallas de telemetría y aplicar contramedidas de regulación de presión.",
+    "puzzle": {
+      "id": "ocular-calibration",
+      "role": "SCIENCE",
+      "prompt": "Calibra el protocolo médico y visual de cabina: ingresa SANS-CHECK.",
+      "answer": "SANS-CHECK"
+    }
+  },
+  {
+    "id": "spatial-disorientation",
+    "title": "Desorientación espacial en transición",
+    "trigger": "SPATIAL_DISORIENTATION",
+    "severity": "MEDIUM",
+    "description": "El cambio entre campos de gravedad afecta el sistema vestibular de la tripulación y reduce la precisión en maniobras.",
+    "rootCause": "Pérdida de referencia gravitacional en el oído interno durante la transición entre 1G, 0G y gravedad planetaria.",
+    "recommendation": "Estabilizar los indicadores inerciales de horizonte y activar el modo de asistencia de control.",
+    "puzzle": {
+      "id": "vestibular-sync",
+      "role": "PROPULSION",
+      "prompt": "Sincroniza la referencia inercial de orientación: ingresa GYRO-LOCK.",
+      "answer": "GYRO-LOCK"
+    }
+  },
+  {
+    "id": "microbiome-alert",
+    "title": "Proliferación microbiana en cabina",
+    "trigger": "MICROBIOME_ALERT",
+    "severity": "HIGH",
+    "description": "Los cultivos de monitoreo muestran crecimiento acelerado de microorganismos mientras baja la respuesta inmune de la tripulación.",
+    "rootCause": "El entorno cerrado favorece la mutación bacteriana y altera el sistema inmunológico durante vuelos prolongados.",
+    "recommendation": "Ejecutar ciclo de esterilización en el sistema cerrado de agua y aislar muestras biológicas.",
+    "puzzle": {
+      "id": "bio-sterilize",
+      "role": "SCIENCE",
+      "prompt": "Inicia la esterilización del circuito cerrado: ingresa BIO-CLEAN.",
+      "answer": "BIO-CLEAN"
+    }
+  },
+  {
+    "id": "autonomous-medical-latency",
+    "title": "Contingencia médica con latencia",
+    "trigger": "AUTONOMOUS_MEDICAL",
+    "severity": "MEDIUM",
+    "description": "El retraso en las comunicaciones con la Tierra impide recibir asistencia médica en tiempo real ante un síntoma agudo.",
+    "rootCause": "La distancia interplanetaria genera una latencia de señal de varios minutos e imposibilita el reabastecimiento.",
+    "recommendation": "Ejecutar el protocolo de diagnóstico autónomo a bordo y optimizar el inventario médico disponible.",
+    "puzzle": {
+      "id": "med-protocol",
+      "role": "SCIENCE",
+      "prompt": "Activa el diagnóstico médico autónomo: ingresa MED-AUTO.",
+      "answer": "MED-AUTO"
+    }
   }
 ]
