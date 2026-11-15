@@ -21,6 +21,11 @@ const eventTriggers: FlightEventDefinition['trigger'][] = [
   'STRUCTURAL_STRESS',
   'LOW_DOWNLINK',
   'NOMINAL',
+  'SPACE_RADIATION',
+  'FLUID_SHIFT_SANS',
+  'SPATIAL_DISORIENTATION',
+  'MICROBIOME_ALERT',
+  'AUTONOMOUS_MEDICAL',
 ];
 const eventSeverities: FlightEventDefinition['severity'][] = ['LOW', 'MEDIUM', 'HIGH'];
 

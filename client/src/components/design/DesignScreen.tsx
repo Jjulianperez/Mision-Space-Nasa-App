@@ -19,6 +19,8 @@ import {
   Zap,
 } from 'lucide-react';
 import { useDesignStore } from '../../store/useDesignStore';
+import { ROLE_META, ROLE_ORDER } from '../../lib/roles';
+import { ToastStack } from '../shared/ToastStack';
 import type { ModuleItem, ModuleCategory, ActiveVote } from '@shared/types';
 
 const CATEGORY_LABEL: Record<ModuleCategory, string> = {
@@ -50,8 +52,14 @@ function TopBar() {
   const telemetry = useDesignStore(s => s.telemetry);
   const launch = useDesignStore(s => s.launch);
   const audit = useDesignStore(s => s.audit);
+  const roomState = useDesignStore(s => s.roomState);
+  const myRole = useDesignStore(s => s.myRole);
+  const localMode = useDesignStore(s => s.localMode);
+  const selectRole = useDesignStore(s => s.selectRole);
+  const notify = useDesignStore(s => s.notify);
 
   const hardBlock = !audit?.canLaunch;
+  const isSolo = localMode || (roomState?.players.length ?? 1) <= 1;
 
   const handleLaunch = () => {
     if (hardBlock) {
@@ -60,6 +68,16 @@ function TopBar() {
       if (!window.confirm('Hay alertas de diseño. ¿Continuar con el lanzamiento?')) return;
     }
     launch();
+  };
+
+  const handleRoleChange = (role: typeof ROLE_ORDER[number]) => {
+    if (!isSolo) {
+      notify('En cooperativo cada operador mantiene su segmento asignado.', 'info');
+      return;
+    }
+    if (role === myRole) return;
+    selectRole(role);
+    notify(`Consola cambiada a ${ROLE_META[role].label}.`, 'info');
   };
 
   return (
@@ -75,11 +93,25 @@ function TopBar() {
       </div>
 
       <div className="flex items-center gap-2 text-xs text-slate-300">
-        {(['PROPULSION', 'SCIENCE', 'COMMS', 'DIRECTOR'] as const).map(r => (
-          <span key={r} className="px-2 py-0.5 rounded border border-white/10 bg-white/5">
-            {r === 'PROPULSION' ? 'Propulsión [EST]' : r === 'SCIENCE' ? 'Ciencia [SCI]' : r === 'COMMS' ? 'Comms [COM]' : 'Director'}
-          </span>
-        ))}
+        {ROLE_ORDER.map(role => {
+          const active = myRole === role;
+          return (
+            <button
+              key={role}
+              type="button"
+              aria-pressed={active}
+              onClick={() => handleRoleChange(role)}
+              title={isSolo ? `Cambiar a ${ROLE_META[role].label}` : ROLE_META[role].label}
+              className={`px-2 py-0.5 rounded border transition-colors ${
+                active
+                  ? 'border-cyan-400/60 bg-cyan-500/15 text-cyan-200'
+                  : 'border-white/10 bg-white/5 hover:border-cyan-400/40 hover:text-white'
+              } ${!isSolo ? 'cursor-default' : ''}`}
+            >
+              {ROLE_META[role].shortLabel}
+            </button>
+          );
+        })}
       </div>
 
       <div className="flex items-center gap-3">
@@ -646,36 +678,10 @@ function DebatePanel({ vote, onVote }: { vote: ActiveVote; onVote: (id: string, 
   );
 }
 
-// ---- Toasts ----
-function ToastStack() {
-  const toasts = useDesignStore(s => s.toasts);
-  const dismiss = useDesignStore(s => s.dismissToast);
-  return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 w-[320px]">
-      {toasts.map(t => (
-        <div key={t.id} className={`rounded border px-3 py-2 text-xs shadow-lg ${
-          t.tone === 'success' ? 'border-emerald-500/40 bg-[#0F1623] text-emerald-300' :
-          t.tone === 'error' ? 'border-red-500/40 bg-[#0F1623] text-red-300' :
-          t.tone === 'warning' ? 'border-amber-500/40 bg-[#0F1623] text-amber-300' :
-          'border-cyan-500/40 bg-[#0F1623] text-cyan-300'
-        }`}>
-          <div className="flex items-start justify-between gap-2">
-            <span>{t.message}</span>
-            <button onClick={() => dismiss(t.id)} className="text-slate-500 hover:text-white"><X className="h-3 w-3" /></button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ---- Main ----
 export function DesignScreen() {
-  const connect = useDesignStore(s => s.connect);
   const phase = useDesignStore(s => s.phase);
   const [modalView, setModalView] = useState<'EST' | 'SCI' | 'COM' | 'debate' | null>(null);
-
-  useEffect(() => { connect(); }, [connect]);
 
   if (phase !== 'DESIGN') {
     return (

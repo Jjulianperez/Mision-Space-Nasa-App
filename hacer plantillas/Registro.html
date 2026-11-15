@@ -1,0 +1,236 @@
+<!DOCTYPE html><html lang="es"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuración de Misión — OrbitaLab</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">/** @type {import('tailwindcss').Config} */
+globalThis.tailwind = globalThis.tailwind || {};
+globalThis.tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        'primary': '#38BDF8',
+        'on-primary': '#082F49',
+        'secondary': '#818CF8',
+        'on-secondary': '#1E1B4B',
+        'accent': '#F59E0B',
+        'on-accent': '#451A03',
+        'surface': '#0B101B',
+        'surface-container-low': '#131A29',
+        'surface-container': '#1C2538',
+        'surface-container-high': '#253147',
+        'on-surface': '#F1F5F9',
+        'on-surface-variant': '#94A3B8',
+        'outline': '#334155',
+        'outline-variant': '#1E293B',
+        'success': '#10B981',
+        'on-success': '#022C22',
+        'warning': '#F59E0B',
+        'on-warning': '#451A03',
+        'error': '#EF4444',
+        'on-error': '#3C0909',
+      },
+      borderRadius: {
+        'sm': '4px',
+        'DEFAULT': '8px',
+        'md': '12px',
+        'lg': '16px',
+        'full': '9999px',
+      },
+      spacing: {
+        'gutter-xs': '4px',
+        'gutter-sm': '8px',
+        'gutter-md': '16px',
+        'gutter-lg': '24px',
+        'gutter-xl': '32px',
+        'section': '48px',
+        'page-margin': '24px',
+      },
+      fontFamily: {
+        'display': ['"Space Grotesk"', 'sans-serif'],
+        'headline': ['"Space Grotesk"', 'sans-serif'],
+        'title': ['"Space Grotesk"', 'sans-serif'],
+        'body': ['"Ubuntu"', 'sans-serif'],
+        'label': ['"Space Grotesk"', 'sans-serif'],
+        'mono': ['"Space Mono"', 'monospace'],
+      },
+      fontSize: {
+        'display-lg': ['40px', { lineHeight: '48px', letterSpacing: '-0.5px', fontWeight: '700' }],
+        'display-lg-mobile': ['30px', { lineHeight: '36px', letterSpacing: '-0.25px', fontWeight: '700' }],
+        'headline-lg': ['28px', { lineHeight: '34px', letterSpacing: '-0.25px', fontWeight: '700' }],
+        'headline-md': ['22px', { lineHeight: '28px', letterSpacing: '0px', fontWeight: '600' }],
+        'title-md': ['16px', { lineHeight: '22px', letterSpacing: '0px', fontWeight: '600' }],
+        'body-lg': ['16px', { lineHeight: '24px', letterSpacing: '0px', fontWeight: '400' }],
+        'body-md': ['14px', { lineHeight: '20px', letterSpacing: '0px', fontWeight: '400' }],
+        'label-lg': ['14px', { lineHeight: '20px', letterSpacing: '0.25px', fontWeight: '600' }],
+        'label-sm': ['12px', { lineHeight: '16px', letterSpacing: '0.25px', fontWeight: '500' }],
+        'mono-md': ['14px', { lineHeight: '20px', letterSpacing: '0px', fontWeight: '700' }],
+        'mono-sm': ['12px', { lineHeight: '16px', letterSpacing: '0px', fontWeight: '400' }],
+      },
+      transitionDuration: {
+        'state-change': '100ms',
+        'surface-enter': '200ms',
+      },
+      transitionDelay: {
+        'state-change': '0ms',
+        'surface-enter': '0ms',
+      },
+      transitionTimingFunction: {
+        'state-change': 'ease-out',
+        'surface-enter': 'cubic-bezier(0.2, 0, 0, 1)',
+      },
+    },
+  },
+};
+if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
+</script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Ubuntu:wght@400;500&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet">
+  <style>.material-symbols-outlined { display: inline-block; width: 1em; height: 1em; line-height: 1 !important; box-sizing: content-box; overflow: hidden; white-space: nowrap; direction: ltr; vertical-align: middle; }</style>
+</head>
+<body class="bg-surface text-on-surface min-h-[1024px] flex flex-col" data-stitch-vh="min-h-[1024px]===min-h-screen">
+
+  <!-- Top Brand Header -->
+  <header class="bg-surface-container-low border-b border-outline-variant px-gutter-lg py-gutter-md flex items-center justify-between">
+    <div class="flex items-center gap-gutter-sm">
+      <span class="material-symbols-outlined text-primary text-headline-md" aria-hidden="true">satellite_alt</span>
+      <span class="font-headline text-title-md text-on-surface" data-design-text-token="title-md">OrbitaLab</span>
+    </div>
+    <span class="font-mono text-mono-sm text-on-surface-variant" data-design-text-token="mono-sm">NUEVA MISIÓN</span>
+  </header>
+
+  <!-- Centered Setup Card -->
+  <main class="flex-1 flex items-center justify-center p-gutter-lg">
+    <section aria-labelledby="setup-title" class="w-full max-w-lg bg-surface-container-low border border-outline-variant rounded-md p-gutter-xl flex flex-col gap-gutter-lg">
+      <div class="flex flex-col gap-gutter-xs">
+        <h1 id="setup-title" class="font-headline text-headline-lg text-on-surface" data-design-text-token="headline-lg">
+          Configurar nueva misión
+        </h1>
+        
+      </div>
+
+      <form id="mission-setup-form" class="flex flex-col gap-gutter-lg" novalidate>
+        <!-- Difficulty Selection (2 large buttons) -->
+        <div class="flex flex-col gap-gutter-sm">
+          <span class="font-headline text-headline-md text-on-surface" data-design-text-token="headline-md">Seleccione la dificultad</span>
+          <div class="grid grid-cols-2 gap-gutter-md" role="radiogroup" aria-label="Selección de dificultad">
+            <button type="button" data-difficulty="aprendiz" aria-pressed="true" class="difficulty-btn relative flex flex-col items-center gap-gutter-sm p-gutter-md rounded-md bg-surface-container-high border-2 border-primary text-center transition-colors duration-state-change ease-state-change focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+              <span class="material-symbols-outlined text-primary text-title-md absolute top-gutter-sm right-gutter-sm" aria-hidden="true">check_circle</span>
+              <div class="w-[80%] aspect-square rounded-md bg-surface-container flex items-center justify-center border border-primary/40 text-primary" aria-hidden="true">
+                <svg viewBox="0 0 32 32" class="w-4/5 h-4/5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <!-- Graduation cap resting on head -->
+                  <polygon points="16,4.5 25,8.3 16,12.1 7,8.3" fill="currentColor" fill-opacity="0.2"></polygon>
+                  <path d="M10.5 9.7v2.8c0 1 2.5 1.8 5.5 1.8s5.5-.8 5.5-1.8V9.7"></path>
+                  <path d="M24.2 8.8v3.8"></path>
+                  <!-- Profile head (covered at top by cap) & shoulders -->
+                  <path d="M11.3 13.8a5 5 0 1 0 9.4 0"></path>
+                  <path d="M5 29.5c0-4.8 4.9-8 11-8s11 3.2 11 8"></path>
+                </svg>
+              </div>
+              <span class="font-title text-title-md text-on-surface" data-design-text-token="title-md">Aprendiz</span>
+              <span class="font-body text-body-md text-on-surface-variant" data-design-text-token="body-md">
+                Asistencia orbital y márgenes amplios.
+              </span>
+            </button>
+
+            <button type="button" data-difficulty="ingeniero" aria-pressed="false" class="difficulty-btn relative flex flex-col items-center gap-gutter-sm p-gutter-md rounded-md bg-surface-container border border-outline text-center transition-colors duration-state-change ease-state-change hover:bg-surface-container-high hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+              <span class="material-symbols-outlined text-on-surface-variant text-title-md opacity-40 absolute top-gutter-sm right-gutter-sm" aria-hidden="true">radio_button_unchecked</span>
+              <div class="w-[80%] aspect-square rounded-md bg-surface-container-low flex items-center justify-center border border-outline text-accent" aria-hidden="true">
+                <svg viewBox="0 0 32 32" class="w-4/5 h-4/5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <!-- Construction helmet -->
+                  <path d="M10 12a6 6 0 0 1 12 0" fill="currentColor" fill-opacity="0.2"></path>
+                  <path d="M16 5.5v3"></path>
+                  <path d="M8 12h16"></path>
+                  <!-- Profile head with glasses & shoulders -->
+                  <path d="M11.5 12.5v3.5a4.5 4.5 0 0 0 9 0v-3.5"></path>
+                  <!-- Glasses -->
+                  <rect x="11.8" y="13.5" width="3.5" height="2.4" rx="0.6"></rect>
+                  <rect x="16.7" y="13.5" width="3.5" height="2.4" rx="0.6"></rect>
+                  <path d="M15.3 14.7h1.4"></path>
+                  <!-- Shoulders -->
+                  <path d="M8.5 28c0-3.3 3.4-5.5 7.5-5.5s7.5 2.2 7.5 5.5"></path>
+                </svg>
+              </div>
+              <span class="font-title text-title-md text-on-surface" data-design-text-token="title-md">Ingeniero</span>
+              <span class="font-body text-body-md text-on-surface-variant" data-design-text-token="body-md">
+                Telemetría manual y presupuesto ajustado.
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Name Input -->
+        <div class="flex flex-col gap-gutter-sm">
+          <label for="commander-name" class="font-label text-label-lg text-on-surface" data-design-text-token="label-lg">
+            Nombre
+          </label>
+          <input id="commander-name" name="name" type="text" required placeholder="Ej. Comandante Vega" class="w-full rounded bg-surface-container border border-outline px-gutter-md py-gutter-sm font-body text-body-md text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none">
+        </div>
+
+        <!-- Confirm Button -->
+        <button data-component-id="button-primary" data-component-type="button" data-component-variant="primary" type="submit" class="w-full inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded bg-primary text-on-primary font-label text-label-lg transition-colors duration-state-change ease-state-change hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+          <span class="material-symbols-outlined text-title-md" aria-hidden="true">rocket_launch</span>
+          <span data-design-text-token="label-lg">Comenzar</span>
+        </button>
+
+        <p id="setup-status" class="hidden font-mono text-mono-sm text-success text-center" role="status" data-design-text-token="mono-sm"></p>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      var selectedDifficulty = 'estandar';
+      var buttons = document.querySelectorAll('.difficulty-btn');
+      var form = document.getElementById('mission-setup-form');
+      var nameInput = document.getElementById('commander-name');
+      var statusEl = document.getElementById('setup-status');
+
+      buttons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          selectedDifficulty = btn.getAttribute('data-difficulty');
+          buttons.forEach(function (other) {
+            var isSelected = other === btn;
+            other.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+            var icon = other.querySelector('.material-symbols-outlined');
+            if (isSelected) {
+              other.classList.remove('bg-surface-container', 'border', 'border-outline');
+              other.classList.add('bg-surface-container-high', 'border-2', 'border-primary');
+              if (icon) {
+                icon.textContent = 'check_circle';
+                icon.classList.remove('text-on-surface-variant', 'opacity-40');
+                icon.classList.add('text-primary');
+              }
+            } else {
+              other.classList.remove('bg-surface-container-high', 'border-2', 'border-primary');
+              other.classList.add('bg-surface-container', 'border', 'border-outline');
+              if (icon) {
+                icon.textContent = 'radio_button_unchecked';
+                icon.classList.remove('text-primary');
+                icon.classList.add('text-on-surface-variant', 'opacity-40');
+              }
+            }
+          });
+        });
+      });
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var name = nameInput.value.trim();
+        if (!name) {
+          nameInput.focus();
+          statusEl.textContent = 'Introduce un nombre para continuar.';
+          statusEl.classList.remove('hidden', 'text-success');
+          statusEl.classList.add('text-error');
+          return;
+        }
+        statusEl.textContent = 'Misión confirmada (' + selectedDifficulty.toUpperCase() + ') — ' + name;
+        statusEl.classList.remove('hidden', 'text-error');
+        statusEl.classList.add('text-success');
+      });
+    })();
+  </script>
+
+
+</body></html>

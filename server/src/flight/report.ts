@@ -1,4 +1,5 @@
 import type {
+  FlightEventDefinition,
   MissionReport,
   ModuleItem,
   RoomState,
@@ -91,16 +92,21 @@ export function generateMissionReport(
       recommendations.push(flight.activeEvent.recommendation);
     }
   }
-  const activeEventWarningCode = {
+  const activeEventWarningCode: Partial<Record<FlightEventDefinition['trigger'], string>> = {
     POWER_DEFICIT: 'POWER_DEFICIT',
     STRUCTURAL_STRESS: 'STRUCTURAL_STRESS',
     LOW_DOWNLINK: 'LOW_DOWNLINK',
     NOMINAL: '',
-  }[flight.activeEvent.trigger];
+    SPACE_RADIATION: '',
+    FLUID_SHIFT_SANS: '',
+    SPATIAL_DISORIENTATION: '',
+    MICROBIOME_ALERT: '',
+    AUTONOMOUS_MEDICAL: '',
+  };
   for (const warning of room.audit.warnings) {
     if (
       (warning.code === 'STRUCTURAL_STRESS' || warning.code === 'POWER_DEFICIT') &&
-      warning.code !== activeEventWarningCode
+      warning.code !== activeEventWarningCode[flight.activeEvent.trigger]
     ) {
       rootCauses.push({
         code: warning.code,
@@ -132,6 +138,7 @@ export function generateMissionReport(
     score,
     sciencePointsEarned,
     dataRecoveryRatio,
+    crisisResolved: flight.crisisResolved,
     rootCauses,
     recommendations: [...new Set(recommendations)],
     missionReference: room.mission.realNasaReference,

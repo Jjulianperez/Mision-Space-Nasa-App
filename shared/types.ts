@@ -6,6 +6,16 @@ export type ModuleAction = 'ADD' | 'REMOVE';
 export type FlightAct = 'ASCENT_INSERTION' | 'CRISIS' | 'OPERATIONS';
 export type FlightOutcome = 'SUCCESS' | 'PARTIAL' | 'FAILURE';
 export type FlightActionType = 'SOLVE_PUZZLE' | 'TOGGLE_SENSOR' | 'EXEC_DECISION';
+export type FlightEventTrigger =
+  | 'POWER_DEFICIT'
+  | 'STRUCTURAL_STRESS'
+  | 'LOW_DOWNLINK'
+  | 'NOMINAL'
+  | 'SPACE_RADIATION'
+  | 'FLUID_SHIFT_SANS'
+  | 'SPATIAL_DISORIENTATION'
+  | 'MICROBIOME_ALERT'
+  | 'AUTONOMOUS_MEDICAL';
 
 export interface Player {
   id: string;
@@ -134,7 +144,7 @@ export interface RoomState {
 export interface FlightEventDefinition {
   id: string;
   title: string;
-  trigger: 'POWER_DEFICIT' | 'STRUCTURAL_STRESS' | 'LOW_DOWNLINK' | 'NOMINAL';
+  trigger: FlightEventTrigger;
   severity: 'LOW' | 'MEDIUM' | 'HIGH';
   description: string;
   rootCause: string;
@@ -203,6 +213,7 @@ export interface MissionReport {
   score: number;
   sciencePointsEarned: number;
   dataRecoveryRatio: number;
+  crisisResolved: boolean;
   rootCauses: { code: string; title: string; explanation: string }[];
   recommendations: string[];
   missionReference: MissionConfig['realNasaReference'];

@@ -1,0 +1,205 @@
+<!DOCTYPE html><html lang="es"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resultados de la Misión — OrbitaLab</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">/** @type {import('tailwindcss').Config} */
+globalThis.tailwind = globalThis.tailwind || {};
+globalThis.tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        'primary': '#38BDF8',
+        'on-primary': '#082F49',
+        'secondary': '#818CF8',
+        'on-secondary': '#1E1B4B',
+        'accent': '#F59E0B',
+        'on-accent': '#451A03',
+        'surface': '#0B101B',
+        'surface-container-low': '#131A29',
+        'surface-container': '#1C2538',
+        'surface-container-high': '#253147',
+        'on-surface': '#F1F5F9',
+        'on-surface-variant': '#94A3B8',
+        'outline': '#334155',
+        'outline-variant': '#1E293B',
+        'success': '#10B981',
+        'on-success': '#022C22',
+        'warning': '#F59E0B',
+        'on-warning': '#451A03',
+        'error': '#EF4444',
+        'on-error': '#3C0909',
+      },
+      borderRadius: {
+        'sm': '4px',
+        'DEFAULT': '8px',
+        'md': '12px',
+        'lg': '16px',
+        'full': '9999px',
+      },
+      spacing: {
+        'gutter-xs': '4px',
+        'gutter-sm': '8px',
+        'gutter-md': '16px',
+        'gutter-lg': '24px',
+        'gutter-xl': '32px',
+        'section': '48px',
+        'page-margin': '24px',
+      },
+      fontFamily: {
+        'display': ['"Space Grotesk"', 'sans-serif'],
+        'headline': ['"Space Grotesk"', 'sans-serif'],
+        'title': ['"Space Grotesk"', 'sans-serif'],
+        'body': ['"Ubuntu"', 'sans-serif'],
+        'label': ['"Space Grotesk"', 'sans-serif'],
+        'mono': ['"Space Mono"', 'monospace'],
+      },
+      fontSize: {
+        'display-lg': ['40px', { lineHeight: '48px', letterSpacing: '-0.5px', fontWeight: '700' }],
+        'display-lg-mobile': ['30px', { lineHeight: '36px', letterSpacing: '-0.25px', fontWeight: '700' }],
+        'headline-lg': ['28px', { lineHeight: '34px', letterSpacing: '-0.25px', fontWeight: '700' }],
+        'headline-md': ['22px', { lineHeight: '28px', letterSpacing: '0px', fontWeight: '600' }],
+        'title-md': ['16px', { lineHeight: '22px', letterSpacing: '0px', fontWeight: '600' }],
+        'body-lg': ['16px', { lineHeight: '24px', letterSpacing: '0px', fontWeight: '400' }],
+        'body-md': ['14px', { lineHeight: '20px', letterSpacing: '0px', fontWeight: '400' }],
+        'label-lg': ['14px', { lineHeight: '20px', letterSpacing: '0.25px', fontWeight: '600' }],
+        'label-sm': ['12px', { lineHeight: '16px', letterSpacing: '0.25px', fontWeight: '500' }],
+        'mono-md': ['14px', { lineHeight: '20px', letterSpacing: '0px', fontWeight: '700' }],
+        'mono-sm': ['12px', { lineHeight: '16px', letterSpacing: '0px', fontWeight: '400' }],
+      },
+      transitionDuration: {
+        'state-change': '100ms',
+        'surface-enter': '200ms',
+      },
+      transitionDelay: {
+        'state-change': '0ms',
+        'surface-enter': '0ms',
+      },
+      transitionTimingFunction: {
+        'state-change': 'ease-out',
+        'surface-enter': 'cubic-bezier(0.2, 0, 0, 1)',
+      },
+    },
+  },
+};
+if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
+</script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Ubuntu:wght@400;500&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet">
+  <style>.material-symbols-outlined { display: inline-block; width: 1em; height: 1em; line-height: 1 !important; box-sizing: content-box; overflow: hidden; white-space: nowrap; direction: ltr; vertical-align: middle; }</style>
+</head>
+<body class="bg-surface text-on-surface min-h-[1024px] flex flex-col" data-stitch-vh="min-h-[1024px]===min-h-screen">
+
+  <!-- Top Header -->
+  <header class="bg-surface-container-low border-b border-outline-variant px-gutter-lg py-gutter-sm flex items-center justify-between gap-gutter-md">
+    <div class="flex items-center gap-gutter-md">
+      <div class="flex items-center gap-gutter-sm">
+        <span class="material-symbols-outlined text-primary text-headline-md" aria-hidden="true">satellite_alt</span>
+        <span class="font-headline text-title-md text-on-surface" data-design-text-token="title-md">OrbitaLab</span>
+      </div>
+      <div class="h-5 w-px bg-outline-variant"></div>
+      <span class="font-label text-label-lg text-on-surface" data-design-text-token="label-lg">Resultados de la Misión</span>
+      <span class="inline-flex items-center gap-gutter-xs px-gutter-sm py-gutter-xs rounded-full bg-primary/20 text-primary border border-primary/40 font-label text-label-sm" data-design-text-token="label-sm">
+        <span class="material-symbols-outlined text-label-lg" aria-hidden="true">school</span>
+        Modo Aprendiz · Asistido
+      </span>
+    </div>
+    <span class="inline-flex items-center gap-gutter-xs px-gutter-sm py-gutter-xs rounded-full bg-success text-on-success font-label text-label-sm" data-design-text-token="label-sm">
+      <span class="material-symbols-outlined text-label-lg" aria-hidden="true">verified</span>
+      Misión Completada
+    </span>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-gutter-lg max-w-5xl w-full mx-auto flex flex-col justify-center gap-gutter-lg">
+
+    <!-- Mission Outcome Banner -->
+    <section class="bg-surface-container-low border border-primary/40 rounded-md p-gutter-xl flex flex-col md:flex-row items-center justify-between gap-gutter-lg">
+      <div class="flex items-center gap-gutter-lg">
+        <div class="w-20 h-20 rounded-md bg-success/20 border border-success/40 flex items-center justify-center text-success shrink-0">
+          <span class="material-symbols-outlined text-display-lg" aria-hidden="true">emoji_events</span>
+        </div>
+        <div class="flex flex-col gap-gutter-xs">
+          <span class="font-mono text-mono-sm text-primary" data-design-text-token="mono-sm">OBSERVACIÓN CLIMÁTICA LEO · INFORME FINAL</span>
+          <h1 class="font-headline text-display-lg text-on-surface" data-design-text-token="display-lg">¡Órbita alcanzada con éxito!</h1>
+          <p class="font-body text-body-lg text-on-surface-variant" data-design-text-token="body-lg">
+            La nave completó todas las maniobras y estableció enlace estable con la estación terrestre.
+          </p>
+        </div>
+      </div>
+      <div class="bg-surface-container border border-outline rounded-md px-gutter-lg py-gutter-md text-center shrink-0">
+        <span class="font-label text-label-sm text-on-surface-variant block">Puntuación final</span>
+        <span class="font-mono text-display-lg text-primary tabular-nums">960</span>
+        <span class="font-label text-label-sm text-success block">Rango A+</span>
+      </div>
+    </section>
+
+    <!-- 4 Key Statistics -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-gutter-md">
+      <article class="bg-surface-container-low border border-outline-variant rounded-md p-gutter-md flex flex-col gap-gutter-xs">
+        <span class="font-body text-body-md text-on-surface-variant">Masa</span>
+        <span class="font-mono text-headline-md text-on-surface tabular-nums">1,685 kg</span>
+        <span class="font-label text-label-sm text-success">Dentro del límite</span>
+      </article>
+      <article class="bg-surface-container-low border border-outline-variant rounded-md p-gutter-md flex flex-col gap-gutter-xs">
+        <span class="font-body text-body-md text-on-surface-variant">Potencia</span>
+        <span class="font-mono text-headline-md text-on-surface tabular-nums">740 W</span>
+        <span class="font-label text-label-sm text-primary">88% eficiencia</span>
+      </article>
+      <article class="bg-surface-container-low border border-outline-variant rounded-md p-gutter-md flex flex-col gap-gutter-xs">
+        <span class="font-body text-body-md text-on-surface-variant">Presupuesto</span>
+        <span class="font-mono text-headline-md text-on-surface tabular-nums">142.5 M$</span>
+        <span class="font-label text-label-sm text-success">7.5 M$ ahorrados</span>
+      </article>
+      <article class="bg-surface-container-low border border-outline-variant rounded-md p-gutter-md flex flex-col gap-gutter-xs">
+        <span class="font-body text-body-md text-on-surface-variant">ΔV disponible</span>
+        <span class="font-mono text-headline-md text-primary tabular-nums">7,905 m/s</span>
+        <span class="font-label text-label-sm text-success">Margen +4.2%</span>
+      </article>
+    </section>
+
+    <!-- Objectives & Minigames Summary -->
+    <section class="bg-surface-container-low border border-outline-variant rounded-md p-gutter-lg flex flex-col gap-gutter-md">
+      <h2 class="font-headline text-headline-md text-on-surface" data-design-text-token="headline-md">Objetivos y minijuegos completados</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-gutter-md">
+        <div class="bg-surface-container rounded p-gutter-md border border-outline-variant flex items-center justify-between">
+          <div class="flex items-center gap-gutter-sm">
+            <span class="material-symbols-outlined text-success" aria-hidden="true">check_circle</span>
+            <span class="font-title text-title-md text-on-surface">Esquivar Basura</span>
+          </div>
+          <span class="font-mono text-mono-sm text-primary">+320 pts</span>
+        </div>
+        <div class="bg-surface-container rounded p-gutter-md border border-outline-variant flex items-center justify-between">
+          <div class="flex items-center gap-gutter-sm">
+            <span class="material-symbols-outlined text-success" aria-hidden="true">check_circle</span>
+            <span class="font-title text-title-md text-on-surface">Alinear Paneles</span>
+          </div>
+          <span class="font-mono text-mono-sm text-primary">+340 pts</span>
+        </div>
+        <div class="bg-surface-container rounded p-gutter-md border border-outline-variant flex items-center justify-between">
+          <div class="flex items-center gap-gutter-sm">
+            <span class="material-symbols-outlined text-success" aria-hidden="true">check_circle</span>
+            <span class="font-title text-title-md text-on-surface">Calibrar Antena</span>
+          </div>
+          <span class="font-mono text-mono-sm text-primary">+300 pts</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Actions -->
+    <div class="flex flex-wrap items-center justify-end gap-gutter-md">
+      <button type="button" class="inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded bg-surface-container border border-outline text-on-surface font-label text-label-lg hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-title-md" aria-hidden="true">replay</span>
+        <span>Repetir misión</span>
+      </button>
+      <button type="button" class="inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded bg-primary text-on-primary font-label text-label-lg hover:opacity-90">
+        <span class="material-symbols-outlined text-title-md" aria-hidden="true">add_circle</span>
+        <span>Nueva misión</span>
+      </button>
+    </div>
+
+  </main>
+
+
+</body></html>

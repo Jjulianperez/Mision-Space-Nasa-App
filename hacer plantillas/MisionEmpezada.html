@@ -1,0 +1,292 @@
+<!DOCTYPE html><html lang="es"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seguimiento Orbital y Minijuegos — Modo Ingeniero — OrbitaLab</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">/** @type {import('tailwindcss').Config} */
+globalThis.tailwind = globalThis.tailwind || {};
+globalThis.tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        'primary': '#38BDF8',
+        'on-primary': '#082F49',
+        'secondary': '#818CF8',
+        'on-secondary': '#1E1B4B',
+        'accent': '#F59E0B',
+        'on-accent': '#451A03',
+        'surface': '#0B101B',
+        'surface-container-low': '#131A29',
+        'surface-container': '#1C2538',
+        'surface-container-high': '#253147',
+        'on-surface': '#F1F5F9',
+        'on-surface-variant': '#94A3B8',
+        'outline': '#334155',
+        'outline-variant': '#1E293B',
+        'success': '#10B981',
+        'on-success': '#022C22',
+        'warning': '#F59E0B',
+        'on-warning': '#451A03',
+        'error': '#EF4444',
+        'on-error': '#3C0909',
+      },
+      borderRadius: {
+        'sm': '4px',
+        'DEFAULT': '8px',
+        'md': '12px',
+        'lg': '16px',
+        'full': '9999px',
+      },
+      spacing: {
+        'gutter-xs': '4px',
+        'gutter-sm': '8px',
+        'gutter-md': '16px',
+        'gutter-lg': '24px',
+        'gutter-xl': '32px',
+        'section': '48px',
+        'page-margin': '24px',
+      },
+      fontFamily: {
+        'display': ['"Space Grotesk"', 'sans-serif'],
+        'headline': ['"Space Grotesk"', 'sans-serif'],
+        'title': ['"Space Grotesk"', 'sans-serif'],
+        'body': ['"Ubuntu"', 'sans-serif'],
+        'label': ['"Space Grotesk"', 'sans-serif'],
+        'mono': ['"Space Mono"', 'monospace'],
+      },
+      fontSize: {
+        'display-lg': ['40px', { lineHeight: '48px', letterSpacing: '-0.5px', fontWeight: '700' }],
+        'display-lg-mobile': ['30px', { lineHeight: '36px', letterSpacing: '-0.25px', fontWeight: '700' }],
+        'headline-lg': ['28px', { lineHeight: '34px', letterSpacing: '-0.25px', fontWeight: '700' }],
+        'headline-md': ['22px', { lineHeight: '28px', letterSpacing: '0px', fontWeight: '600' }],
+        'title-md': ['16px', { lineHeight: '22px', letterSpacing: '0px', fontWeight: '600' }],
+        'body-lg': ['16px', { lineHeight: '24px', letterSpacing: '0px', fontWeight: '400' }],
+        'body-md': ['14px', { lineHeight: '20px', letterSpacing: '0px', fontWeight: '400' }],
+        'label-lg': ['14px', { lineHeight: '20px', letterSpacing: '0.25px', fontWeight: '600' }],
+        'label-sm': ['12px', { lineHeight: '16px', letterSpacing: '0.25px', fontWeight: '500' }],
+        'mono-md': ['14px', { lineHeight: '20px', letterSpacing: '0px', fontWeight: '700' }],
+        'mono-sm': ['12px', { lineHeight: '16px', letterSpacing: '0px', fontWeight: '400' }],
+      },
+      transitionDuration: {
+        'state-change': '100ms',
+        'surface-enter': '200ms',
+      },
+      transitionDelay: {
+        'state-change': '0ms',
+        'surface-enter': '0ms',
+      },
+      transitionTimingFunction: {
+        'state-change': 'ease-out',
+        'surface-enter': 'cubic-bezier(0.2, 0, 0, 1)',
+      },
+    },
+  },
+};
+if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
+</script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Ubuntu:wght@400;500&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet">
+  <style>.material-symbols-outlined { display: inline-block; width: 1em; height: 1em; line-height: 1 !important; box-sizing: content-box; overflow: hidden; white-space: nowrap; direction: ltr; vertical-align: middle; }</style>
+</head>
+<body class="bg-surface text-on-surface min-h-[1024px] flex flex-col" data-stitch-vh="min-h-[1024px]===min-h-screen">
+
+  <!-- Top Header -->
+  <header class="bg-surface-container-low border-b border-outline-variant px-gutter-lg py-gutter-sm flex items-center justify-between gap-gutter-md">
+    <div class="flex items-center gap-gutter-md">
+      <div class="flex items-center gap-gutter-sm">
+        <span class="material-symbols-outlined text-primary text-headline-md" aria-hidden="true">satellite_alt</span>
+        <span class="font-headline text-title-md text-on-surface" data-design-text-token="title-md">OrbitaLab</span>
+      </div>
+      <div class="h-5 w-px bg-outline-variant"></div>
+      <span class="font-label text-label-lg text-on-surface" data-design-text-token="label-lg">Seguimiento Orbital</span>
+      <span class="inline-flex items-center gap-gutter-xs px-gutter-sm py-gutter-xs rounded-full bg-accent/20 text-accent border border-accent/40 font-label text-label-sm" data-design-text-token="label-sm">
+        <span class="material-symbols-outlined text-label-lg" aria-hidden="true">manufacturing</span>
+        Modo Ingeniero · Manual
+      </span>
+    </div>
+    <span class="inline-flex items-center gap-gutter-xs px-gutter-sm py-gutter-xs rounded-full bg-warning text-on-warning font-mono text-mono-sm" data-design-text-token="mono-sm">
+      ÓRBITA #04 · T+01:42:18
+    </span>
+  </header>
+
+  <!-- Main 3-Column Layout -->
+  <main class="flex-1 p-gutter-lg grid grid-cols-1 lg:grid-cols-12 gap-gutter-lg">
+
+    <!-- Left Column: Minigame Selector -->
+    <aside class="lg:col-span-3 flex flex-col gap-gutter-md">
+      <article class="bg-surface-container-low border border-outline-variant rounded-md p-gutter-md flex flex-col gap-gutter-sm">
+        <h2 class="font-headline text-title-md text-on-surface mb-gutter-xs" data-design-text-token="title-md">Minijuegos orbitales</h2>
+
+        <button type="button" data-game="esquivar" aria-pressed="true" class="game-btn w-full flex items-center gap-gutter-sm p-gutter-md rounded-md bg-surface-container-high border-2 border-primary text-left transition-colors">
+          <span class="material-symbols-outlined text-primary text-headline-md" aria-hidden="true">sports_esports</span>
+          <div class="flex flex-col">
+            <span class="font-title text-title-md text-on-surface">1. Esquivar Basura</span>
+            <span class="font-mono text-mono-sm text-on-surface-variant">ΔV manual · ±0.5 m/s</span>
+          </div>
+        </button>
+
+        <button type="button" data-game="paneles" aria-pressed="false" class="game-btn w-full flex items-center gap-gutter-sm p-gutter-md rounded-md bg-surface-container border border-outline text-left transition-colors hover:bg-surface-container-high">
+          <span class="material-symbols-outlined text-on-surface-variant text-headline-md" aria-hidden="true">solar_power</span>
+          <div class="flex flex-col">
+            <span class="font-title text-title-md text-on-surface">2. Alinear Paneles</span>
+            <span class="font-mono text-mono-sm text-on-surface-variant">Azimut ±1.0°</span>
+          </div>
+        </button>
+
+        <button type="button" data-game="antena" aria-pressed="false" class="game-btn w-full flex items-center gap-gutter-sm p-gutter-md rounded-md bg-surface-container border border-outline text-left transition-colors hover:bg-surface-container-high">
+          <span class="material-symbols-outlined text-on-surface-variant text-headline-md" aria-hidden="true">cell_tower</span>
+          <div class="flex flex-col">
+            <span class="font-title text-title-md text-on-surface">3. Calibrar Antena</span>
+            <span class="font-mono text-mono-sm text-on-surface-variant">2,245 MHz · SNR</span>
+          </div>
+        </button>
+      </article>
+    </aside>
+
+    <!-- Center Column: Orbital Tracking + Manual Minigame Area -->
+    <section class="lg:col-span-6 flex flex-col gap-gutter-md">
+      <article class="bg-surface-container-low border border-outline-variant rounded-md p-gutter-md flex-1 flex flex-col gap-gutter-md">
+        <div class="flex items-center justify-between">
+          <h2 id="game-title" class="font-headline text-headline-md text-on-surface" data-design-text-token="headline-md">1. Esquivar Basura Espacial</h2>
+          <span id="game-score" class="font-mono text-mono-md text-accent tabular-nums">PRECISIÓN: 94.2%</span>
+        </div>
+
+        <div class="relative flex-1 min-h-[340px] rounded overflow-hidden border border-outline-variant bg-surface flex flex-col justify-between p-gutter-md">
+          <img src="https://lh3.googleusercontent.com/aida/ALJJyrD9xPKjXgBZ3pwvi9GhRc99AlEgY7Fp8NVroyxMtk1Q9V4CbEiNHxL3l80Q2iZudbZbwQUrLn9MQG93BpgHbwiWWaKNlvWOK5rWGXlPk-L2XOAd2SI9WBESGkeYOe0cOQ1auw5dZmTbHNK2vcdKZbbKO09ApddNauR4He5diE8Xcvub_oqMQ98qGSCnk_xktIsr3BKcIRmFypaloofHldG9rVOzcPjMUfXAW9NGYRNh3xgodmbsaN-hNArTTFW1L3Y" alt="Seguimiento orbital" class="absolute inset-0 w-full h-full object-cover opacity-55">
+          <div class="relative z-10 flex items-center justify-between">
+            <span class="px-gutter-sm py-gutter-xs rounded bg-surface-container-low/90 border border-outline-variant font-mono text-mono-sm text-on-surface">
+              SSO · APO 542.0 km · INC 97.4°
+            </span>
+            <span class="px-gutter-sm py-gutter-xs rounded bg-accent/20 border border-accent/40 font-mono text-mono-sm text-accent">
+              CONTROL MANUAL
+            </span>
+          </div>
+
+          <!-- Interactive Manual Minigame Box -->
+          <div class="relative z-10 my-auto mx-auto w-full max-w-md bg-surface-container-low/90 backdrop-blur border border-accent/50 rounded-md p-gutter-lg flex flex-col items-center gap-gutter-md text-center">
+            <span id="game-icon" class="material-symbols-outlined text-accent text-display-lg" aria-hidden="true">satellite_alt</span>
+            <p id="game-prompt" class="font-mono text-mono-sm text-on-surface">
+              Ajusta el vector de empuje manual para evitar la colisión en T-00:12.
+            </p>
+            <input id="game-slider" type="range" min="-45" max="45" value="12" class="w-full accent-accent">
+            <button id="game-action-btn" type="button" class="inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded bg-primary text-on-primary font-label text-label-lg hover:opacity-90">
+              <span class="material-symbols-outlined text-title-md" aria-hidden="true">bolt</span>
+              <span id="game-btn-text">Ejecutar maniobra</span>
+            </button>
+          </div>
+
+          <div class="relative z-10 flex justify-between font-mono text-mono-sm text-on-surface-variant bg-surface-container-low/90 rounded p-gutter-sm border border-outline-variant">
+            <span>TELEMETRÍA:</span>
+            <span id="game-hint" class="text-accent">OBJETO A 1.4 km · VEL REL 11.2 km/s</span>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Right Column: Unified Statistics Panel -->
+    <section class="lg:col-span-3 flex flex-col gap-gutter-md">
+      <article class="bg-surface-container-low border border-outline-variant rounded-md p-gutter-md flex flex-col gap-gutter-md">
+        <div class="flex items-center justify-between">
+          <h2 class="font-headline text-title-md text-on-surface" data-design-text-token="title-md">Estadísticas</h2>
+          <span class="material-symbols-outlined text-accent text-title-md" aria-hidden="true">analytics</span>
+        </div>
+        <div class="flex flex-col gap-gutter-sm">
+          <div class="flex flex-col gap-gutter-xs">
+            <div class="flex justify-between font-mono text-mono-sm">
+              <span class="text-on-surface-variant">Masa</span>
+              <span class="text-on-surface tabular-nums">1,685 / 1,800 kg</span>
+            </div>
+            <div class="h-2 rounded-full bg-surface-container overflow-hidden">
+              <div class="h-full w-[93%] bg-warning rounded-full"></div>
+            </div>
+          </div>
+          <div class="flex flex-col gap-gutter-xs">
+            <div class="flex justify-between font-mono text-mono-sm">
+              <span class="text-on-surface-variant">Potencia</span>
+              <span class="text-on-surface tabular-nums">740 / 780 W</span>
+            </div>
+            <div class="h-2 rounded-full bg-surface-container overflow-hidden">
+              <div class="h-full w-[95%] bg-warning rounded-full"></div>
+            </div>
+          </div>
+          <div class="flex flex-col gap-gutter-xs">
+            <div class="flex justify-between font-mono text-mono-sm">
+              <span class="text-on-surface-variant">Presupuesto</span>
+              <span class="text-on-surface tabular-nums">142.5 / 150 M$</span>
+            </div>
+            <div class="h-2 rounded-full bg-surface-container overflow-hidden">
+              <div class="h-full w-[95%] bg-accent rounded-full"></div>
+            </div>
+          </div>
+          <div class="flex flex-col gap-gutter-xs">
+            <div class="flex justify-between font-mono text-mono-sm">
+              <span class="text-on-surface-variant">ΔV disponible</span>
+              <span class="text-primary tabular-nums">7,905 m/s</span>
+            </div>
+            <div class="h-2 rounded-full bg-surface-container overflow-hidden">
+              <div class="h-full w-[88%] bg-primary rounded-full"></div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+  </main>
+
+  <script>
+    (function () {
+      var precision = 94.2;
+      var games = {
+        esquivar: {
+          title: '1. Esquivar Basura Espacial',
+          icon: 'satellite_alt',
+          prompt: 'Ajusta el vector de empuje manual para evitar la colisión en T-00:12.',
+          btn: 'Ejecutar maniobra',
+          hint: 'OBJETO A 1.4 km · VEL REL 11.2 km/s'
+        },
+        paneles: {
+          title: '2. Alinear Paneles Solares',
+          icon: 'solar_power',
+          prompt: 'Ajusta el azimut solar manualmente dentro de ±1.0° para máxima carga.',
+          btn: 'Fijar azimut',
+          hint: 'INCIDENCIA SOLAR: 87.5% · 740 W'
+        },
+        antena: {
+          title: '3. Calibrar Antena',
+          icon: 'cell_tower',
+          prompt: 'Sintoniza la frecuencia S-Band para minimizar la pérdida de paquetes.',
+          btn: 'Calibrar enlace',
+          hint: 'SNR: 18.4 dB · 48.2 Mbps'
+        }
+      };
+
+      document.querySelectorAll('.game-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var g = games[btn.getAttribute('data-game')];
+          document.querySelectorAll('.game-btn').forEach(function (b) {
+            var active = b === btn;
+            b.setAttribute('aria-pressed', active ? 'true' : 'false');
+            b.classList.toggle('bg-surface-container-high', active);
+            b.classList.toggle('border-2', active);
+            b.classList.toggle('border-primary', active);
+            b.classList.toggle('bg-surface-container', !active);
+            b.classList.toggle('border', !active);
+            b.classList.toggle('border-outline', !active);
+          });
+          document.getElementById('game-title').textContent = g.title;
+          document.getElementById('game-icon').textContent = g.icon;
+          document.getElementById('game-prompt').textContent = g.prompt;
+          document.getElementById('game-btn-text').textContent = g.btn;
+          document.getElementById('game-hint').textContent = g.hint;
+        });
+      });
+
+      document.getElementById('game-action-btn').addEventListener('click', function () {
+        precision = Math.min(99.9, +(precision + 0.5).toFixed(1));
+        document.getElementById('game-score').textContent = 'PRECISIÓN: ' + precision + '%';
+      });
+    })();
+  </script>
+
+</body></html>
