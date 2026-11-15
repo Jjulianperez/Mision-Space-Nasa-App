@@ -1,9 +1,15 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { io as createSocketClient } from 'socket.io-client';
-import type { AsymmetricFlightPayload, RoomState } from '../../../shared/types.js';
+import type { AsymmetricFlightPayload, RoomState, SocketError } from '../../../shared/types.js';
 import { createBackend } from '../index.js';
 
 type TestSocket = ReturnType<typeof createSocketClient>;
+
+function waitForError(socket: TestSocket): Promise<SocketError> {
+  return new Promise((resolve) =>
+    socket.once('server:error', (error: SocketError) => resolve(error)),
+  );
+}
 
 function waitForState(socket: TestSocket): Promise<RoomState> {
   return new Promise((resolve) =>
@@ -52,6 +58,80 @@ describe('Socket.io room and flight protocol', () => {
       await backend.close();
       backend = undefined;
     }
+  });
+
+  async function startBackend(): Promise<string> {
+    const testBackend = createBackend();
+    backend = testBackend;
+    await new Promise<void>((resolve, reject) => {
+      testBackend.httpServer.once('error', reject);
+      testBackend.httpServer.listen(0, '127.0.0.1', resolve);
+    });
+    const address = testBackend.httpServer.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('No se pudo determinar el puerto de prueba.');
+    }
+    return `http://127.0.0.1:${address.port}`;
+  }
+
+  it('rejects a launch from a socket that is not in the room', async () => {
+    const url = await startBackend();
+    const host = await connectClient(url);
+    const intruder = await connectClient(url);
+    clients.push(host, intruder);
+
+    const created = waitForState(host);
+    host.emit('room:create', { roomId: 'SOCK3', playerName: 'Host', difficulty: 'APPRENTICE' });
+    await created;
+    const selectedRole = waitForState(host);
+    host.emit('role:select', { roomId: 'SOCK3', role: 'PROPULSION' });
+    await selectedRole;
+    const designStarted = waitForState(host);
+    host.emit('room:start', { roomId: 'SOCK3' });
+    await designStarted;
+
+    const rejected = waitForError(intruder);
+    intruder.emit('mission:launch', { roomId: 'SOCK3' });
+    expect((await rejected).code).toBe('PLAYER_NOT_IN_ROOM');
+
+    // La sala sigue en diseño: el anfitrión todavía puede proponer módulos.
+    const proposal = waitForState(host);
+    host.emit('design:propose_module', { roomId: 'SOCK3', moduleId: 'EST-01', action: 'ADD' });
+    expect((await proposal).phase).toBe('DESIGN');
+  });
+
+  it('moves a player out of the previous room when they create a new one', async () => {
+    const url = await startBackend();
+    const host = await connectClient(url);
+    const guest = await connectClient(url);
+    clients.push(host, guest);
+
+    const created = waitForState(host);
+    host.emit('room:create', { roomId: 'SOCK4', playerName: 'Host', difficulty: 'APPRENTICE' });
+    await created;
+    const hostSawGuest = waitForState(host);
+    const guestJoined = waitForState(guest);
+    guest.emit('room:join', { roomId: 'SOCK4', playerName: 'Guest' });
+    await Promise.all([hostSawGuest, guestJoined]);
+
+    const guestSawHostLeave = waitForState(guest);
+    host.emit('room:create', { roomId: 'SOCK5', playerName: 'Host', difficulty: 'APPRENTICE' });
+    const remaining = await guestSawHostLeave;
+
+    expect(remaining.roomId).toBe('SOCK4');
+    expect(remaining.players.map((player) => player.name)).toEqual(['Guest']);
+    expect(remaining.hostId).toBe(guest.id);
+  });
+
+  it('answers a malformed payload with a validation error', async () => {
+    const url = await startBackend();
+    const client = await connectClient(url);
+    clients.push(client);
+
+    const rejected = waitForError(client);
+    client.emit('room:create', null);
+
+    expect((await rejected).code).toBe('INVALID_PAYLOAD');
   });
 
   it('synchronizes a room vote then emits role-filtered flight telemetry', async () => {

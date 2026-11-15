@@ -1,14 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import * as THREE from 'three';
+import { createEarthTexture } from '../shared/createEarthTexture';
+import { BLUEPRINT_VIEW_NAMES, BlueprintFallback, type BlueprintProps } from './BlueprintFallback';
 
-type DesignModel3DProps = {
-  view: number;
-  hasEST: boolean;
-  hasSCI: boolean;
-  hasCOM: boolean;
+type DesignModel3DProps = BlueprintProps & {
+  /** Cambia para devolver la cámara a su posición inicial. */
   resetKey: number;
 };
+
+/** Evita saltos de la animación al volver a una pestaña que estuvo en segundo plano. */
+const MAX_FRAME_DELTA_SECONDS = 0.1;
 
 type ModelMaterials = {
   hull: THREE.MeshStandardMaterial;
@@ -299,57 +301,6 @@ function createOrbiterScene(
   return () => {};
 }
 
-function createEarthTexture(): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = 1024;
-  canvas.height = 512;
-  const context = canvas.getContext('2d');
-  if (!context) throw new Error('No se pudo crear la textura del planeta.');
-
-  context.fillStyle = '#071122';
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  context.strokeStyle = 'rgba(56, 189, 248, 0.16)';
-  context.lineWidth = 1;
-  for (let x = 0; x <= canvas.width; x += 64) {
-    context.beginPath();
-    context.moveTo(x, 0);
-    context.lineTo(x, canvas.height);
-    context.stroke();
-  }
-  for (let y = 0; y <= canvas.height; y += 64) {
-    context.beginPath();
-    context.moveTo(0, y);
-    context.lineTo(canvas.width, y);
-    context.stroke();
-  }
-
-  const continents = [
-    [[135, 88], [255, 78], [295, 145], [242, 212], [210, 238], [172, 185]],
-    [[260, 255], [328, 275], [348, 348], [302, 438], [276, 422], [254, 322]],
-    [[468, 94], [562, 84], [578, 152], [492, 166], [464, 132]],
-    [[474, 180], [576, 184], [608, 268], [556, 378], [512, 362], [464, 256]],
-    [[586, 84], [824, 94], [858, 188], [768, 246], [646, 226], [590, 166]],
-    [[766, 316], [858, 316], [868, 386], [776, 392]],
-  ];
-  continents.forEach((continent) => {
-    context.beginPath();
-    continent.forEach(([x, y], index) => {
-      if (index === 0) context.moveTo(x, y);
-      else context.lineTo(x, y);
-    });
-    context.closePath();
-    context.fillStyle = 'rgba(14, 116, 144, 0.34)';
-    context.fill();
-    context.strokeStyle = '#38bdf8';
-    context.lineWidth = 1.75;
-    context.stroke();
-  });
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-
 function createOrbitScene(
   scene: THREE.Scene,
   materials: ModelMaterials,
@@ -579,10 +530,24 @@ function createOrbitScene(
 
 export function DesignModel3D({ view, hasEST, hasSCI, hasCOM, resetKey }: DesignModel3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [webglUnavailable, setWebglUnavailable] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+        powerPreference: 'low-power',
+      });
+    } catch {
+      // Sin WebGL (o con el contexto bloqueado) se muestra el plano 2D equivalente.
+      setWebglUnavailable(true);
+      return;
+    }
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
@@ -609,11 +574,6 @@ export function DesignModel3D({ view, hasEST, hasSCI, hasCOM, resetKey }: Design
     rimLight.position.set(-8, 6, -9);
     scene.add(rimLight);
 
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true,
-      powerPreference: 'low-power',
-    });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -653,6 +613,15 @@ export function DesignModel3D({ view, hasEST, hasSCI, hasCOM, resetKey }: Design
       updateScene = createOrbitScene(scene, materials, { hasSCI, hasCOM }, textures);
     }
 
+    // Solo la vista orbital se anima; las demás se redibujan cuando cambia la cámara
+    // o el tamaño, para no ocupar la GPU con fotogramas idénticos.
+    const animated =
+      view === 2 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let needsRender = true;
+    controls.addEventListener('change', () => {
+      needsRender = true;
+    });
+
     const resize = () => {
       const width = container.clientWidth;
       const height = container.clientHeight;
@@ -663,20 +632,28 @@ export function DesignModel3D({ view, hasEST, hasSCI, hasCOM, resetKey }: Design
       renderer.setSize(width, height);
       renderer.domElement.style.width = '100%';
       renderer.domElement.style.height = '100%';
+      needsRender = true;
     };
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(container);
     resize();
+    updateScene(0);
 
     let previousFrameTime: number | null = null;
     let frameId = 0;
     const animate = (time: number) => {
       frameId = window.requestAnimationFrame(animate);
-      const delta = previousFrameTime === null ? 0 : (time - previousFrameTime) / 1000;
+      const delta =
+        previousFrameTime === null
+          ? 0
+          : Math.min(MAX_FRAME_DELTA_SECONDS, (time - previousFrameTime) / 1000);
       previousFrameTime = time;
-      updateScene(delta);
+      if (animated) updateScene(delta);
       controls.update();
-      renderer.render(scene, camera);
+      if (animated || needsRender) {
+        renderer.render(scene, camera);
+        needsRender = false;
+      }
     };
     frameId = window.requestAnimationFrame(animate);
 
@@ -693,17 +670,23 @@ export function DesignModel3D({ view, hasEST, hasSCI, hasCOM, resetKey }: Design
       });
       textures.forEach((texture) => texture.dispose());
       renderer.dispose();
+      // Libera el contexto de inmediato: el navegador limita cuántos puede haber activos
+      // y cada cambio de vista o de módulos crea uno nuevo.
+      renderer.forceContextLoss();
       container.removeChild(renderer.domElement);
     };
   }, [hasCOM, hasEST, hasSCI, resetKey, view]);
 
-  const labels = ['lanzador', 'orbitador', 'planeta, orbitador y haz de escaneo'];
+  if (webglUnavailable) {
+    return <BlueprintFallback view={view} hasEST={hasEST} hasSCI={hasSCI} hasCOM={hasCOM} />;
+  }
+
   return (
     <div
       ref={containerRef}
-      className="h-[280px] w-[280px] max-w-full drop-shadow-[0_0_12px_rgba(56,189,248,0.15)]"
+      className="h-full w-full"
       role="img"
-      aria-label={`Modelo 3D del ${labels[view] ?? 'diseño de misión'}`}
+      aria-label={`Modelo 3D del ${BLUEPRINT_VIEW_NAMES[view] ?? 'diseño de misión'}. Arrastra para girarlo.`}
     />
   );
 }

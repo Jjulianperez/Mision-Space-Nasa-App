@@ -30,6 +30,7 @@ import {
   Pill,
   SectionTitle,
 } from '../templates/ConsolePrimitives';
+import { ConfirmDialog } from '../shared/Modal';
 import {
   FlightConsoleTemplate,
   type FlightStat,
@@ -503,6 +504,7 @@ export function FlightScreen() {
   const openHome = useDesignStore((s) => s.openHome);
 
   const [activeGame, setActiveGame] = useState<MinigameId>('esquivar');
+  const [pendingSacrificeId, setPendingSacrificeId] = useState<string | null>(null);
 
   useEffect(() => {
     if (flight) setActiveGame(ROLE_TO_GAME[flight.role]);
@@ -571,15 +573,7 @@ export function FlightScreen() {
   };
 
   const handleSacrifice = (moduleId: string) => {
-    const module = modules.find((item) => item.id === moduleId);
-    if (
-      !window.confirm(
-        `¿Sacrificar ${module?.name ?? moduleId}? Perderás sus puntos científicos, pero la crisis quedará resuelta.`,
-      )
-    ) {
-      return;
-    }
-    execDecision(moduleId);
+    setPendingSacrificeId(moduleId);
   };
 
   const roleSwitcher = (
@@ -704,6 +698,19 @@ export function FlightScreen() {
           onSacrifice={handleSacrifice}
         />
       </FlightConsoleTemplate>
+      {pendingSacrificeId && (
+        <ConfirmDialog
+          title="Sacrificar experimento"
+          description={`¿Sacrificar ${modules.find((module) => module.id === pendingSacrificeId)?.name ?? pendingSacrificeId}? Perderás sus puntos científicos, pero la crisis quedará resuelta.`}
+          confirmLabel="Sacrificar y resolver"
+          tone="danger"
+          onCancel={() => setPendingSacrificeId(null)}
+          onConfirm={() => {
+            execDecision(pendingSacrificeId);
+            setPendingSacrificeId(null);
+          }}
+        />
+      )}
     </div>
   );
 }

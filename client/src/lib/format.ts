@@ -1,31 +1,13 @@
-const decimalFormatter = new Intl.NumberFormat('es-ES', {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
+const FORMATTERS = [0, 1, 2].map(
+  (digits) =>
+    new Intl.NumberFormat('es-ES', {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    }),
+);
 
-const oneDecimalFormatter = new Intl.NumberFormat('es-ES', {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-});
-
-const twoDecimalFormatter = new Intl.NumberFormat('es-ES', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
-export function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-export function round(value: number, decimals = 2): number {
-  const factor = 10 ** decimals;
-  return Math.round(value * factor) / factor;
-}
-
-export function formatNumber(value: number, decimals = 0): string {
-  if (decimals === 0) return decimalFormatter.format(value);
-  if (decimals === 1) return oneDecimalFormatter.format(value);
-  return twoDecimalFormatter.format(value);
+export function formatNumber(value: number, decimals: 0 | 1 | 2 = 0): string {
+  return FORMATTERS[decimals].format(value);
 }
 
 export function formatKg(value: number): string {
@@ -36,48 +18,21 @@ export function formatMillions(value: number): string {
   return `${formatNumber(value)} M$`;
 }
 
+/** Potencias en kW: sin decimales cuando el valor es entero, uno en caso contrario. */
 export function formatKw(value: number): string {
-  return `${formatNumber(value, 2)} kW`;
+  return `${formatNumber(value, Number.isInteger(value) ? 0 : 1)} kW`;
 }
 
 export function formatMbps(value: number): string {
   return `${formatNumber(value)} Mbps`;
 }
 
-export function formatYears(value: number): string {
-  return `${formatNumber(value, 2)} años`;
+export function formatPercent(value: number): string {
+  return `${formatNumber(value)} %`;
 }
 
-export function formatPercent(value: number, decimals = 0): string {
-  return `${formatNumber(value, decimals)}%`;
-}
-
-export function formatSignedNumber(value: number, decimals = 0): string {
-  if (value === 0) return '±0';
-  const sign = value > 0 ? '+' : '−';
-  return `${sign}${formatNumber(Math.abs(value), decimals)}`;
-}
-
-export function formatSignedKg(value: number): string {
-  return `${formatSignedNumber(value)} kg`;
-}
-
-export function formatSignedMillions(value: number): string {
-  return `${formatSignedNumber(value)} M$`;
-}
-
-export function formatSignedKw(value: number): string {
-  return `${formatSignedNumber(value, 2)} kW`;
-}
-
-export function formatSignedMbps(value: number): string {
-  return `${formatSignedNumber(value)} Mbps`;
-}
-
-export function formatSignedYears(value: number): string {
-  return `${formatSignedNumber(value, 2)} a`;
-}
-
-export function formatScore(value: number): string {
-  return formatNumber(value);
+/** Número con signo explícito («+12», «−8»), para variaciones respecto al diseño. */
+export function formatSigned(value: number): string {
+  if (value === 0) return '0';
+  return `${value > 0 ? '+' : '−'}${formatNumber(Math.abs(value))}`;
 }

@@ -4,6 +4,7 @@ import type {
   GroundStation,
   MissionConfig,
   ModuleItem,
+  Player,
   RoleType,
   TelemetryMetrics,
 } from '../../../shared/types.js';
@@ -120,6 +121,19 @@ export function buildAsymmetricFlightPayload(
     crisisDecisionAvailable: flight.crisisTriggered && !flight.crisisResolved,
     activeExperimentIds: activeExperiments.map((module) => module.id),
   };
+}
+
+/**
+ * La alerta de crisis describe la amenaza entrante, que pertenece al Segmento
+ * Terrestre: en equipo solo la recibe COMMS y debe avisar al resto. En solitario
+ * el único operador cubre los cuatro segmentos, así que la recibe con cualquier
+ * rol activo; de lo contrario nunca sabría qué crisis está resolviendo.
+ */
+export function selectCrisisAlertRecipients(players: Player[]): Player[] {
+  if (players.length === 1) {
+    return players;
+  }
+  return players.filter((player) => player.role === 'COMMS');
 }
 
 export function toCrisisAlert(flight: FlightRuntimeState): FlightCrisisAlert {

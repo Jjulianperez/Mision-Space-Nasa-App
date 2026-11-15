@@ -72,6 +72,14 @@ function normalizeRoomId(value: unknown): string {
   return roomId;
 }
 
+/** Clave con la que se indexa una sala; rechaza valores que no sean texto. */
+export function toRoomKey(value: unknown): string {
+  if (typeof value !== 'string') {
+    throw new RoomServiceError('INVALID_ROOM_ID', 'El código de sala debe ser texto.');
+  }
+  return value.trim().toUpperCase();
+}
+
 function cloneState(state: RoomState): RoomState {
   return structuredClone(state);
 }
@@ -298,7 +306,7 @@ export class RoomService {
   }
 
   expireVote(roomId: string, voteId: string): RoomState | null {
-    const room = this.rooms.get(roomId.trim().toUpperCase());
+    const room = this.rooms.get(toRoomKey(roomId));
     if (!room || room.activeVote?.voteId !== voteId) {
       return null;
     }
@@ -306,9 +314,14 @@ export class RoomService {
     return cloneState(room);
   }
 
-  startFlight(roomId: string): { state: RoomState; audit: RoomState['audit'] } {
+  startFlight(
+    roomId: string,
+    playerId: string,
+  ): { state: RoomState; audit: RoomState['audit'] } {
     const room = this.getMutableRoom(roomId);
     this.assertPhase(room, 'DESIGN');
+    // Solo un integrante de la sala puede lanzar: el código de sala no es una credencial.
+    this.getPlayer(room, playerId);
     if (room.activeVote) {
       throw new RoomServiceError('VOTE_IN_PROGRESS', 'Resuelve la votación antes del lanzamiento.');
     }
@@ -376,7 +389,7 @@ export class RoomService {
   }
 
   private getMutableRoom(roomId: string): RoomState {
-    const normalizedRoomId = roomId.trim().toUpperCase();
+    const normalizedRoomId = toRoomKey(roomId);
     const room = this.rooms.get(normalizedRoomId);
     if (!room) {
       throw new RoomServiceError('ROOM_NOT_FOUND', `No existe la sala "${normalizedRoomId}".`);

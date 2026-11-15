@@ -231,15 +231,22 @@ export class FlightLoop {
     if (!current) {
       return;
     }
-    const result = advanceFlightRuntime(current, now);
-    this.runtimeByRoom.set(roomId, result.state);
-    if (result.crisisStarted) {
-      this.callbacks.onCrisis(roomId, structuredClone(result.state));
-    }
-    this.callbacks.onTick(roomId, structuredClone(result.state));
-    if (result.completed) {
+    try {
+      const result = advanceFlightRuntime(current, now);
+      this.runtimeByRoom.set(roomId, result.state);
+      if (result.crisisStarted) {
+        this.callbacks.onCrisis(roomId, structuredClone(result.state));
+      }
+      this.callbacks.onTick(roomId, structuredClone(result.state));
+      if (result.completed) {
+        this.stop(roomId);
+        this.callbacks.onComplete(roomId, structuredClone(result.state));
+      }
+    } catch (error) {
+      // Este método corre dentro de un temporizador: una excepción sin capturar
+      // tumbaría el proceso y, con él, las partidas de todas las demás salas.
       this.stop(roomId);
-      this.callbacks.onComplete(roomId, structuredClone(result.state));
+      console.error(`La simulación de vuelo de "${roomId}" se detuvo por un error:`, error);
     }
   }
 }

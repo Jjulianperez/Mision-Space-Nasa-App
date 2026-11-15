@@ -21,8 +21,11 @@ import {
 } from 'lucide-react';
 import { useDesignStore } from '../../store/useDesignStore';
 import { ROLE_META, ROLE_ORDER } from '../../lib/roles';
-import { ToastStack } from '../shared/ToastStack';
+import { ModuleCatalogModal } from './ModuleCatalogModal';
 import type { ModuleItem, ModuleCategory, ActiveVote } from '@shared/types';
+import { ConfirmDialog, Modal } from '../shared/Modal';
+import { buildDesignGauges } from './designGauges';
+import { EmptyState, MeterBar } from '../templates/ConsolePrimitives';
 
 const DesignModel3D = lazy(() =>
   import('./DesignModel3D').then(({ DesignModel3D: Component }) => ({ default: Component })),
@@ -47,10 +50,6 @@ const ROLE_SUMMARY: Record<string, { controls: string; objective: string }> = {
   DIRECTOR: { controls: 'Presupuesto y decisiones', objective: 'Equilibrar costes, masa y objetivos científicos.' },
 };
 
-function formatNum(v: number, d = 0) {
-  return v.toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d });
-}
-
 // ---- Top Bar ----
 function TopBar() {
   const mission = useDesignStore(s => s.mission);
@@ -63,24 +62,24 @@ function TopBar() {
   const selectRole = useDesignStore(s => s.selectRole);
   const notify = useDesignStore(s => s.notify);
 
-  const hardBlock = !audit?.canLaunch;
+  const hardBlock = audit !== null && !audit.canLaunch;
   const isSolo = localMode || (roomState?.players.length ?? 1) <= 1;
 
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmTitle, setConfirmTitle] = useState('');
-  const [confirmMessage, setConfirmMessage] = useState('');
-  const [confirmTone, setConfirmTone] = useState<'warning' | 'error'>('warning');
 
   const handleLaunch = () => {
+    if (!audit) {
+      notify('La auditoría de diseño todavía no está disponible. Espera la sincronización antes de lanzar.', 'warning');
+      return;
+    }
     if (hardBlock) {
-      setConfirmTitle('Bloqueo duro de lanzamiento');
-      setConfirmMessage('El diseno supera el presupuesto o la masa maxima del lanzador. Deseas lanzar de todos modos asumiendo el riesgo?');
-      setConfirmTone('error');
-      setConfirmOpen(true);
-    } else if ((audit?.warnings.length ?? 0) > 0) {
-      setConfirmTitle('Alertas de diseno activas');
-      setConfirmMessage('El diseno presenta alertas de margen (masa, energia, datos o ciencia). Continuar con el lanzamiento?');
-      setConfirmTone('warning');
+      notify(
+        `Lanzamiento bloqueado: ${audit.blocks.map((block) => block.message).join(' ')}`,
+        'error',
+      );
+      return;
+    }
+    if (audit.warnings.length > 0) {
       setConfirmOpen(true);
     } else {
       launch();
@@ -104,7 +103,7 @@ function TopBar() {
 
   return (
     <>
-    <header className="h-14 shrink-0 border-b border-white/10 bg-[#0F1623] px-4 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 min-h-14 shrink-0 border-b border-white/10 bg-[#0F1623] px-3 py-2 flex flex-wrap items-center justify-between gap-2 sm:px-4 lg:static">
       <div className="flex items-center gap-3 min-w-0">
         <Rocket className="h-5 w-5 text-cyan-400 shrink-0" aria-hidden="true" />
         <span className="font-semibold text-white tracking-wide">OrbitaLab</span>
@@ -115,7 +114,7 @@ function TopBar() {
         </span>
       </div>
 
-      <div className="flex items-center gap-2 text-xs text-slate-300">
+      <div className="flex items-center gap-2 text-xs text-slate-300" role="group" aria-label="Cambiar segmento">
         {ROLE_ORDER.map(role => {
           const active = myRole === role;
           return (
@@ -125,7 +124,7 @@ function TopBar() {
               aria-pressed={active}
               onClick={() => handleRoleChange(role)}
               title={isSolo ? `Cambiar a ${ROLE_META[role].label}` : ROLE_META[role].label}
-              className={`px-2 py-0.5 rounded border transition-colors ${
+              className={`px-2 py-0.5 rounded border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 ${
                 active
                   ? 'border-cyan-400/60 bg-cyan-500/15 text-cyan-200'
                   : 'border-white/10 bg-white/5 hover:border-cyan-400/40 hover:text-white'
@@ -142,8 +141,9 @@ function TopBar() {
           {telemetry?.projectedSciencePoints ?? 0} / {mission?.targetSciencePoints ?? 0} pts
         </div>
         <button
+          type="button"
           onClick={handleLaunch}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-black text-sm font-semibold transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-black text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
         >
           <Rocket className="h-4 w-4" aria-hidden="true" />
           Simular Lanzamiento
@@ -151,39 +151,26 @@ function TopBar() {
       </div>
     </header>
     {confirmOpen && (
-      <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setConfirmOpen(false)}>
-        <div className="w-full max-w-md bg-[#0F1623] border border-white/15 rounded-xl p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
-          <div className="flex items-start gap-3 mb-3">
-            {confirmTone === 'error' ? (
-              <ShieldAlert className="h-6 w-6 text-red-400 shrink-0" aria-hidden="true" />
-            ) : (
-              <AlertTriangle className="h-6 w-6 text-amber-400 shrink-0" aria-hidden="true" />
-            )}
-            <div>
-              <h3 className="text-base font-semibold text-white">{confirmTitle}</h3>
-              <p className="text-sm text-slate-300 mt-1">{confirmMessage}</p>
-            </div>
-          </div>
-          <div className="flex gap-2 justify-end mt-4">
-            <button
-              onClick={() => setConfirmOpen(false)}
-              className="px-4 py-1.5 rounded border border-white/10 bg-white/5 text-sm text-slate-200 hover:bg-white/10 transition-colors"
+      <ConfirmDialog
+        title="Alertas de diseño activas"
+        description="El diseño conserva advertencias de margen. Puedes lanzar, pero el resultado puede verse afectado."
+        confirmLabel="Lanzar con alertas"
+        tone="warning"
+        icon={AlertTriangle}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={confirmLaunch}
+      >
+        <ul className="flex flex-col gap-2">
+          {audit?.warnings.map((warning) => (
+            <li
+              key={warning.code}
+              className="rounded border border-warning/30 bg-warning/5 px-gutter-sm py-gutter-xs font-body text-body-md text-on-surface-variant"
             >
-              Cancelar
-            </button>
-            <button
-              onClick={confirmLaunch}
-              className={`px-4 py-1.5 rounded text-sm font-semibold transition-colors ${
-                confirmTone === 'error'
-                  ? 'bg-red-500 hover:bg-red-400 text-white'
-                  : 'bg-cyan-500 hover:bg-cyan-400 text-black'
-              }`}
-            >
-              Confirmar lanzamiento
-            </button>
-          </div>
-        </div>
-      </div>
+              {warning.message}
+            </li>
+          ))}
+        </ul>
+      </ConfirmDialog>
     )}
     </>
   );
@@ -201,10 +188,10 @@ function LeftColumn({ onOpen }: { onOpen: (v: 'EST' | 'SCI' | 'COM' | 'debate') 
 
   const debateCount = activeVote ? 1 : 0;
 
-  const btnBase = 'w-full flex items-center justify-between px-3 py-2.5 rounded border text-sm font-medium transition-colors';
+  const btnBase = 'w-full flex items-center justify-between px-3 py-2.5 rounded border text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400';
 
   return (
-    <aside className="bg-[#0F1623] border-r border-white/10 flex flex-col overflow-hidden p-3 gap-3">
+    <aside className="order-2 bg-[#0F1623] border-r border-white/10 flex flex-col overflow-visible p-3 gap-3 lg:order-1 lg:overflow-hidden">
       <div className="flex flex-col gap-2.5">
         <button onClick={() => onOpen('EST')} className={`${btnBase} border-white/10 bg-white/5 text-slate-200 hover:bg-white/10`}>
           <span className={CATEGORY_COLOR.EST}>Propulsión [EST]</span>
@@ -250,8 +237,7 @@ function LeftColumn({ onOpen }: { onOpen: (v: 'EST' | 'SCI' | 'COM' | 'debate') 
 
 // ---- Center Column ----
 function CenterColumn() {
-  const blueprintView = useDesignStore(s => s.blueprintView);
-  const setBlueprintView = useDesignStore(s => s.setBlueprintView);
+  const [blueprintView, setBlueprintView] = useState(0);
   const selectedModules = useDesignStore(s => s.selectedModules);
   const mission = useDesignStore(s => s.mission);
 
@@ -269,7 +255,7 @@ function CenterColumn() {
   const resetView = () => setResetKey(key => key + 1);
 
   return (
-    <section className="bg-[#090D16] flex flex-col overflow-hidden">
+    <section className="order-1 min-h-[520px] bg-[#090D16] flex flex-col overflow-hidden lg:order-2 lg:min-h-0">
       <div className="shrink-0 border-b border-white/10 bg-[#0F1623]/70 px-3 py-2.5">
         <div className="flex items-center gap-3">
           {briefOpen && (mission?.imageUrl ? (
@@ -316,20 +302,20 @@ function CenterColumn() {
       </div>
 
       <div className="flex-1 relative overflow-hidden">
-        <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded bg-black/40 text-slate-300 hover:text-white hover:bg-black/60 transition-colors" aria-label="Vista anterior">
+        <button type="button" onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded bg-black/40 text-slate-300 hover:text-white hover:bg-black/60 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400" aria-label="Vista anterior">
           <ChevronLeft className="h-5 w-5" aria-hidden="true" />
         </button>
-        <button onClick={next} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded bg-black/40 text-slate-300 hover:text-white hover:bg-black/60 transition-colors" aria-label="Vista siguiente">
+        <button type="button" onClick={next} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded bg-black/40 text-slate-300 hover:text-white hover:bg-black/60 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400" aria-label="Vista siguiente">
           <ChevronRight className="h-5 w-5" aria-hidden="true" />
         </button>
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 text-xs font-mono text-slate-400 bg-black/40 px-2 py-1 rounded">
           {views[blueprintView]}
         </div>
         <div className="absolute top-2 right-2 z-10 flex gap-1">
-          <button onClick={resetView} className="text-[10px] px-2 py-1 rounded bg-black/40 text-slate-400 hover:text-white hover:bg-black/60 transition-colors" aria-label="Restablecer vista">
+          <button type="button" onClick={resetView} className="text-[10px] px-2 py-1 rounded bg-black/40 text-slate-400 hover:text-white hover:bg-black/60 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400" aria-label="Restablecer vista">
             Reset
           </button>
-          <button onClick={() => setFullscreen(true)} className="text-[10px] px-2 py-1 rounded bg-black/40 text-slate-400 hover:text-white hover:bg-black/60 transition-colors" aria-label="Pantalla completa">
+          <button type="button" onClick={() => setFullscreen(true)} className="text-[10px] px-2 py-1 rounded bg-black/40 text-slate-400 hover:text-white hover:bg-black/60 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400" aria-label="Pantalla completa">
             ⛶ Full
           </button>
         </div>
@@ -345,22 +331,22 @@ function CenterColumn() {
         </div>
 
         {fullscreen && (
-          <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setFullscreen(false)}>
-            <div className="relative w-full h-full max-w-5xl max-h-[90vh] flex items-center justify-center" onClick={e => e.stopPropagation()}>
-              <button onClick={() => setFullscreen(false)} className="absolute top-2 right-2 z-10 text-xs px-3 py-1.5 rounded bg-white/10 text-white hover:bg-white/20 transition-colors">
-                ✕ Cerrar
-              </button>
-              <div className="w-full h-full flex items-center justify-center">
-                <BlueprintView
-                  view={blueprintView}
-                  hasEST={hasEST}
-                  hasSCI={hasSCI}
-                  hasCOM={hasCOM}
-                  resetKey={resetKey}
-                />
-              </div>
-            </div>
-          </div>
+          <Modal
+            title="Vista del diseño de misión"
+            description={views[blueprintView]}
+            onClose={() => setFullscreen(false)}
+            size="xl"
+            fill
+            bodyClassName="flex min-h-0 flex-1 items-center justify-center p-gutter-md"
+          >
+            <BlueprintView
+              view={blueprintView}
+              hasEST={hasEST}
+              hasSCI={hasSCI}
+              hasCOM={hasCOM}
+              resetKey={resetKey}
+            />
+          </Modal>
         )}
       </div>
 
@@ -370,7 +356,7 @@ function CenterColumn() {
         {selectedModules.map(m => (
           <span key={m.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-white/10 bg-white/5 text-xs text-slate-200 shrink-0">
             {m.name}
-            <button onClick={() => useDesignStore.getState().proposeModule(m.id, 'REMOVE')} className="text-slate-500 hover:text-red-400" aria-label={`Quitar ${m.name}`}>
+            <button type="button" onClick={() => useDesignStore.getState().proposeModule(m.id, 'REMOVE')} className="text-slate-500 hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-400" aria-label={`Quitar ${m.name}`}>
               <X className="h-3 w-3" aria-hidden="true" />
             </button>
           </span>
@@ -418,46 +404,38 @@ function BlueprintView({
 function RightColumn() {
   const telemetry = useDesignStore(s => s.telemetry);
   const audit = useDesignStore(s => s.audit);
-  const notify = useDesignStore(s => s.notify);
   const mission = useDesignStore(s => s.mission);
-
-  const t = telemetry;
-  const massPct = t ? Math.min(100, t.massPercentage) : 0;
-  const energyPct = t && t.powerGeneratedKw > 0 ? Math.min(100, (t.powerConsumedKw / t.powerGeneratedKw) * 100) : 0;
-  const budgetTotal = t ? t.budgetSpent + t.budgetRemaining : 1;
-  const budgetPct = t ? Math.min(100, (t.budgetSpent / budgetTotal) * 100) : 0;
-  const dataPct = t && t.totalDownlinkCapacity > 0 ? Math.min(100, (t.totalDataGenerated / t.totalDownlinkCapacity) * 100) : 0;
-  const sciencePct = t ? Math.min(100, (t.projectedSciencePoints / (mission?.targetSciencePoints ?? 1)) * 100) : 0;
-  const riskPct = t ? t.structuralRisk : 0;
-
-  const bar = (label: string, value: string, pct: number, color: string) => (
-    <div>
-      <div className="flex items-center justify-between text-xs mb-1">
-        <span className="text-slate-300">{label}</span>
-        <span className="font-mono tabular-nums text-slate-200">{value}</span>
-      </div>
-      <div className="h-2.5 rounded bg-white/5 overflow-hidden">
-        <div className={`h-full rounded transition-all ${color}`} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
-      </div>
-    </div>
-  );
+  const difficulty = useDesignStore(s => s.difficulty);
+  const gauges = telemetry && mission ? buildDesignGauges(telemetry, mission) : [];
 
   return (
-    <aside className="bg-[#0F1623] border-l border-white/10 flex flex-col overflow-hidden">
+    <aside className="order-3 bg-[#0F1623] border-l border-white/10 flex flex-col overflow-visible lg:overflow-hidden">
       <div className="shrink-0 border-b border-white/10 px-3 py-2">
         <h2 className="text-sm font-semibold text-white">Telemetría en vivo</h2>
       </div>
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
-        {bar('Objetivo Científico', `${t?.projectedSciencePoints ?? 0} / ${mission?.targetSciencePoints ?? 0} pts`, sciencePct, 'bg-cyan-500')}
-        {bar('Masa Total', `${formatNum(t?.totalMassKg ?? 0)} / ${formatNum(mission?.maxLauncherMassKg ?? 0)} kg`, massPct, massPct > 90 ? 'bg-red-500' : 'bg-amber-500')}
-        {bar('Energía', `${formatNum(t?.powerConsumedKw ?? 0, 2)} / ${formatNum(t?.powerGeneratedKw ?? 0, 2)} kW`, energyPct, energyPct > 100 ? 'bg-red-500' : 'bg-emerald-500')}
-        {bar('Presupuesto', `${formatNum(t?.budgetSpent ?? 0)} / ${formatNum(budgetTotal)} M$`, budgetPct, budgetPct > 100 ? 'bg-red-500' : 'bg-amber-500')}
-        {bar('Enlace de Datos', `${formatNum(t?.totalDataGenerated ?? 0)} / ${formatNum(t?.totalDownlinkCapacity ?? 0)} Mbps`, dataPct, dataPct > 100 ? 'bg-red-500' : 'bg-cyan-500')}
-        {bar('Riesgo Estructural', `${formatNum(riskPct)} %`, riskPct, riskPct > 50 ? 'bg-red-500' : riskPct > 20 ? 'bg-amber-500' : 'bg-emerald-500')}
+        {gauges.length > 0 ? (
+          gauges.map(gauge => (
+            <MeterBar
+              key={gauge.id}
+              label={gauge.label}
+              value={gauge.value}
+              percent={gauge.percent}
+              tone={gauge.tone}
+              marks={gauge.marks}
+              hint={difficulty === 'APPRENTICE' ? gauge.hint : undefined}
+              mono={difficulty === 'ENGINEER'}
+            />
+          ))
+        ) : (
+          <EmptyState>Esperando la telemetría del diseño para calcular los márgenes.</EmptyState>
+        )}
 
         <div className="mt-2">
           <h3 className="text-xs font-semibold text-slate-300 mb-1.5">Alertas de auditoría</h3>
-          {audit && (audit.warnings.length > 0 || audit.blocks.length > 0) ? (
+          {!audit ? (
+            <p className="text-xs text-slate-400">La auditoría todavía no está disponible.</p>
+          ) : audit.warnings.length > 0 || audit.blocks.length > 0 ? (
             <ul className="flex flex-col gap-1.5">
               {audit.blocks.map((b, i) => (
                 <li key={`b-${i}`} className="text-xs rounded border border-red-500/40 bg-red-500/10 text-red-300 px-2 py-1.5">
@@ -479,157 +457,7 @@ function RightColumn() {
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-white/10 p-3 flex gap-2">
-        <button onClick={() => notify('Diseño guardado (modo local).', 'success')} className="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded border border-white/10 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition-colors">
-          <Save className="h-3.5 w-3.5" aria-hidden="true" />
-          Guardar diseño
-        </button>
-        <button onClick={() => useDesignStore.getState()._recalcLocal()} className="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded border border-white/10 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition-colors">
-          <Gauge className="h-3.5 w-3.5" aria-hidden="true" />
-          Restablecer mesa
-        </button>
-      </div>
     </aside>
-  );
-}
-
-// ---- Modal ----
-function CatalogModal({ view, onClose }: { view: 'EST' | 'SCI' | 'COM' | 'debate'; onClose: () => void }) {
-  const modules = useDesignStore(s => s.modules);
-  const selectedModules = useDesignStore(s => s.selectedModules);
-  const proposeModule = useDesignStore(s => s.proposeModule);
-  const vote = useDesignStore(s => s.vote);
-  const activeVote = useDesignStore(s => s.activeVote);
-  const audit = useDesignStore(s => s.audit);
-  const difficulty = useDesignStore(s => s.difficulty);
-  const mission = useDesignStore(s => s.mission);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' || e.code === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [onClose]);
-
-  const isDebate = view === 'debate';
-  const title = isDebate ? 'Mesa de Debate del Equipo' : CATEGORY_LABEL[view as ModuleCategory];
-
-  const filtered = modules.filter(m => m.category === view);
-
-  const isSelected = (id: string) => selectedModules.some(m => m.id === id);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-4xl max-h-[85vh] bg-[#0F1623] border border-white/15 rounded-xl flex flex-col overflow-hidden"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="shrink-0 border-b border-white/10 px-4 py-3 flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-base font-semibold text-white">{title}</h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {isDebate
-                ? `Propuestas pendientes de votación · ${activeVote ? 1 : 0} activa(s)`
-                : `Presupuesto: ${formatNum(audit?.telemetry.budgetRemaining ?? 0)} M$ disponibles · Ranuras científicas: ${selectedModules.filter(m => m.category === 'SCI').reduce((s, m) => s + (m.slotsRequired ?? 1), 0)}/3`}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-white/10 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition-colors"
-          >
-            <X className="h-3.5 w-3.5" aria-hidden="true" />
-            Cerrar
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4">
-          {isDebate ? (
-            activeVote ? (
-              <DebatePanel vote={activeVote} onVote={vote} />
-            ) : (
-              <div className="text-center text-slate-500 text-sm mt-8">
-                <Handshake className="h-8 w-8 mx-auto mb-2 opacity-40" aria-hidden="true" />
-                Sin propuestas pendientes de votación.
-              </div>
-            )
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {filtered.map(m => {
-                const equipped = isSelected(m.id);
-                return (
-                  <div key={m.id} className="rounded border border-white/10 bg-[#131A29] p-3 flex flex-col gap-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-sm font-medium ${CATEGORY_COLOR[m.category]}`}>{m.name}</span>
-                          <span className="text-[10px] font-mono text-slate-500">{m.id}</span>
-                        </div>
-                        <div className="text-xs text-slate-400 font-mono tabular-nums mt-0.5">
-                          {m.massKg} kg · {m.costMillions} M$ · {m.powerKw} kW · {m.dataGenMbps + m.dataDownlinkMbps} Mbps
-                          {m.sciencePoints > 0 && <span className="text-cyan-400 ml-1">+{m.sciencePoints} pts</span>}
-                        </div>
-                      </div>
-                      {equipped && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
-                          Equipado
-                        </span>
-                      )}
-                    </div>
-                    {difficulty === 'APPRENTICE' && (
-                      <p className="text-[10px] text-slate-400 leading-relaxed">{m.apprenticeTip}</p>
-                    )}
-                    <button
-                      onClick={() => proposeModule(m.id, equipped ? 'REMOVE' : 'ADD')}
-                      className={`self-start px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                        equipped
-                          ? 'bg-red-500/20 text-red-300 border border-red-500/40 hover:bg-red-500/30'
-                          : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30'
-                      }`}
-                    >
-                      {equipped ? 'Quitar' : '+ Proponer'}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DebatePanel({ vote, onVote }: { vote: ActiveVote; onVote: (id: string, approve: boolean) => void }) {
-  const mod = vote.module;
-  return (
-    <div className="rounded border border-amber-500/30 bg-amber-500/5 p-4">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-medium text-amber-300">{vote.proposedBy} propone {vote.action}</span>
-        <span className="text-xs text-slate-400">{mod.name} ({mod.id})</span>
-      </div>
-      <p className="text-xs text-slate-400 mb-3">{mod.apprenticeTip}</p>
-      <div className="grid grid-cols-3 gap-2 text-xs font-mono tabular-nums mb-4">
-        <div className="rounded bg-white/5 px-2 py-1.5"><span className="text-slate-500">Masa</span><div className="text-slate-200">{mod.massKg} kg</div></div>
-        <div className="rounded bg-white/5 px-2 py-1.5"><span className="text-slate-500">Coste</span><div className="text-slate-200">{mod.costMillions} M$</div></div>
-        <div className="rounded bg-white/5 px-2 py-1.5"><span className="text-slate-500">Ciencia</span><div className="text-cyan-400">+{mod.sciencePoints} pts</div></div>
-        <div className="rounded bg-white/5 px-2 py-1.5"><span className="text-slate-500">Energía</span><div className="text-slate-200">{mod.powerKw} kW</div></div>
-        <div className="rounded bg-white/5 px-2 py-1.5"><span className="text-slate-500">Datos</span><div className="text-slate-200">{mod.dataGenMbps + mod.dataDownlinkMbps} Mbps</div></div>
-        <div className="rounded bg-white/5 px-2 py-1.5"><span className="text-slate-500">Riesgo</span><div className="text-slate-200">{mod.riskModifier}</div></div>
-      </div>
-      <div className="flex gap-2">
-        <button onClick={() => onVote(vote.voteId, true)} className="flex-1 px-3 py-2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-sm font-medium hover:bg-emerald-500/30 transition-colors">
-          Aprobar
-        </button>
-        <button onClick={() => onVote(vote.voteId, false)} className="flex-1 px-3 py-2 rounded bg-red-500/20 text-red-300 border border-red-500/40 text-sm font-medium hover:bg-red-500/30 transition-colors">
-          Rechazar
-        </button>
-      </div>
-      <div className="text-[10px] text-slate-500 mt-2">
-        Aprobaciones: {vote.approvals.length} · Rechazos: {vote.rejections.length}
-      </div>
-    </div>
   );
 }
 
@@ -651,15 +479,14 @@ export function DesignScreen() {
   }
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col bg-[#0B101B] text-slate-200">
+    <div className="min-h-[100dvh] flex flex-col bg-[#0B101B] text-slate-200 lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden">
       <TopBar />
-      <div className="flex-1 grid grid-cols-[340px_1fr_320px] overflow-hidden">
+      <div className="grid flex-1 grid-cols-1 gap-3 overflow-visible lg:min-h-0 lg:grid-cols-[minmax(240px,28fr)_minmax(360px,44fr)_minmax(240px,28fr)] lg:gap-0 lg:overflow-hidden">
         <LeftColumn onOpen={setModalView} />
         <CenterColumn />
         <RightColumn />
       </div>
-      <ToastStack />
-      {modalView && <CatalogModal view={modalView} onClose={() => setModalView(null)} />}
+      {modalView && <ModuleCatalogModal view={modalView} onClose={() => setModalView(null)} />}
     </div>
   );
 }

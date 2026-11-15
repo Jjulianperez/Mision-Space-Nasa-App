@@ -108,12 +108,34 @@ describe('RoomService', () => {
     });
     rooms.selectRole('SOLO2', 'solo', 'COMMS');
     rooms.startDesign('SOLO2', 'solo');
-    rooms.startFlight('SOLO2');
+    rooms.startFlight('SOLO2', 'solo');
 
     const state = rooms.selectRole('SOLO2', 'solo', 'PROPULSION');
 
     expect(state.phase).toBe('FLIGHT');
     expect(state.players[0].role).toBe('PROPULSION');
+  });
+
+  it('only lets a member of the room launch the mission', () => {
+    const rooms = new RoomService();
+    rooms.createRoom('host', {
+      roomId: 'TEAM6',
+      playerName: 'Host',
+      difficulty: 'APPRENTICE',
+    });
+    rooms.selectRole('TEAM6', 'host', 'PROPULSION');
+    rooms.startDesign('TEAM6', 'host');
+
+    expect(() => rooms.startFlight('TEAM6', 'intruder')).toThrow('no pertenece a esta sala');
+    expect(rooms.getState('TEAM6').phase).toBe('DESIGN');
+  });
+
+  it('reports a non-text room code as a validation error instead of crashing', () => {
+    const rooms = new RoomService();
+
+    // Simula un payload malformado recibido por la red.
+    const malformedRoomId = 42 as unknown as string;
+    expect(() => rooms.getState(malformedRoomId)).toThrow(RoomServiceError);
   });
 
   it('keeps role changes closed for multiplayer rooms during flight', () => {
@@ -127,7 +149,7 @@ describe('RoomService', () => {
     rooms.selectRole('TEAM5', 'host', 'PROPULSION');
     rooms.selectRole('TEAM5', 'guest', 'SCIENCE');
     rooms.startDesign('TEAM5', 'host');
-    rooms.startFlight('TEAM5');
+    rooms.startFlight('TEAM5', 'host');
 
     expect(() => rooms.selectRole('TEAM5', 'host', 'COMMS')).toThrow(RoomServiceError);
   });

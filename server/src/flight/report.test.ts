@@ -17,7 +17,7 @@ describe('generateMissionReport', () => {
     rooms.proposeModule('REPORT1', 'solo', 'SCI-01', 'ADD');
     rooms.selectRole('REPORT1', 'solo', 'COMMS');
     rooms.proposeModule('REPORT1', 'solo', 'COM-02', 'ADD');
-    const { state } = rooms.startFlight('REPORT1');
+    const { state } = rooms.startFlight('REPORT1', 'solo');
     const flight = {
       ...createFlightRuntime(
         state.roomId,

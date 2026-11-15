@@ -28,6 +28,12 @@ function PhaseSync() {
 
 export default function App() {
   const openLobby = useDesignStore((state) => state.openLobby);
+  const connect = useDesignStore((state) => state.connect);
+
+  // Abre el enlace con el backend al cargar; si no responde, la app sigue en modo local.
+  useEffect(() => {
+    connect();
+  }, [connect]);
 
   return (
     <BrowserRouter>

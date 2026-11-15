@@ -46,7 +46,7 @@ describe('auditPreLaunch', () => {
     expect(audit.blocks).toHaveLength(0);
   });
 
-  it('blocks budget overrun and science-bay overflow', () => {
+  it('blocks budget overrun but keeps science-bay limits at proposal time', () => {
     const budgetAudit = auditPreLaunch(
       { ...mission, budgetMillions: 10 },
       [{ ...getModuleById('EST-01'), costMillions: 11 }],
@@ -59,7 +59,16 @@ describe('auditPreLaunch', () => {
 
     expect(budgetAudit.blocks.map((block) => block.code)).toContain('BUDGET_EXCEEDED');
     expect(bayAudit.scienceBaySlotsUsed).toBe(4);
-    expect(bayAudit.blocks.map((block) => block.code)).toContain('SCIENCE_BAY_EXCEEDED');
+    expect(bayAudit.canLaunch).toBe(true);
+    expect(bayAudit.blocks).toHaveLength(0);
+    expect(() =>
+      validateModuleProposal(
+        mission,
+        [getModuleById('SCI-01'), getModuleById('SCI-02')],
+        getModuleById('SCI-05'),
+        'ADD',
+      ),
+    ).toThrow('límite de 3 espacios');
   });
 
   it('rejects proposals that break module dependencies', () => {

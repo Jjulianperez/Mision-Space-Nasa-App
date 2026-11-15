@@ -1,8 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { Player } from '../../../shared/types.js';
 import { getGroundStationForMission, getMissionById, getModuleById } from '../catalog.js';
 import { calculateTelemetryMetrics } from '../engine/calculator.js';
-import { buildAsymmetricFlightPayload } from '../sockets/asymmetry.js';
 import {
+  buildAsymmetricFlightPayload,
+  selectCrisisAlertRecipients,
+} from '../sockets/asymmetry.js';
+import {
+  FlightLoop,
   advanceFlightRuntime,
   applyFlightAction,
   createFlightRuntime,
@@ -122,5 +127,63 @@ describe('flight loop and role payloads', () => {
     expect(director).toHaveProperty('science');
     expect(director).not.toHaveProperty('trajectory');
     expect(director).not.toHaveProperty('internal');
+  });
+
+  it('sends the crisis alert only to COMMS in a team, and to the lone operator when solo', () => {
+    const player = (id: string, role: Player['role']): Player => ({
+      id,
+      name: id,
+      role,
+      ready: true,
+    });
+    const team = [player('p1', 'PROPULSION'), player('p2', 'COMMS'), player('p3', 'SCIENCE')];
+
+    expect(selectCrisisAlertRecipients(team).map((item) => item.id)).toEqual(['p2']);
+    expect(
+      selectCrisisAlertRecipients([player('p1', 'PROPULSION'), player('p3', 'SCIENCE')]),
+    ).toEqual([]);
+    expect(selectCrisisAlertRecipients([player('solo', 'PROPULSION')]).map((item) => item.id)).toEqual([
+      'solo',
+    ]);
+  });
+});
+
+describe('FlightLoop timers', () => {
+  const mission = getMissionById('leo-earth-observation');
+  const modules = [getModuleById('SCI-01')];
+  const telemetry = calculateTelemetryMetrics(mission, modules);
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('stops only the failing room when a tick callback throws', () => {
+    vi.useFakeTimers();
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const ticks: string[] = [];
+    const loop = new FlightLoop(
+      {
+        onTick: (roomId) => {
+          ticks.push(roomId);
+          // El primer tick ocurre al iniciar; el fallo llega en el temporizador.
+          if (roomId === 'BROKEN' && ticks.filter((id) => id === 'BROKEN').length > 1) {
+            throw new Error('La sala desapareció');
+          }
+        },
+        onCrisis: () => undefined,
+        onComplete: () => undefined,
+      },
+      1000,
+    );
+    loop.start('BROKEN', mission, modules, telemetry);
+    loop.start('HEALTHY', mission, modules, telemetry);
+
+    expect(() => vi.advanceTimersByTime(2000)).not.toThrow();
+
+    expect(() => loop.getRuntime('BROKEN')).toThrow('No hay una simulación de vuelo activa');
+    expect(loop.getRuntime('HEALTHY').progress).toBeGreaterThan(0);
+    expect(logged).toHaveBeenCalledTimes(1);
+    loop.stopAll();
   });
 });

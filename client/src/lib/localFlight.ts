@@ -1,5 +1,6 @@
 import type {
   AsymmetricFlightPayload,
+  AuditIssue,
   FlightAct,
   FlightActionType,
   FlightCrisisAlert,
@@ -12,6 +13,12 @@ import type {
   TelemetryMetrics,
 } from '@shared/types';
 import { FLIGHT_CONFIG, FLIGHT_EVENTS, getCatalogGroundStation } from '../data/catalogs';
+import { estimateDataRecoveryRatio } from './localEngine';
+
+/**
+ * Simulación de vuelo de la sesión offline: espejo de `server/src/flight` (loop.ts y
+ * report.ts) y del filtro por rol de `server/src/sockets/asymmetry.ts`.
+ */
 
 export interface LocalFlightState {
   startedAt: number;
@@ -28,6 +35,8 @@ export interface LocalFlightState {
   mission: MissionConfig;
   modules: ModuleItem[];
   telemetry: TelemetryMetrics;
+  /** Alertas de la auditoría previa al lanzamiento; el informe las cita como causa raíz. */
+  auditWarnings: AuditIssue[];
 }
 
 export interface LocalFlightAdvance {
@@ -36,25 +45,15 @@ export interface LocalFlightAdvance {
   completed: boolean;
 }
 
-function estimateDataRecoveryRatio(
-  telemetry: Pick<TelemetryMetrics, 'totalDataGenerated' | 'totalDownlinkCapacity'>,
-  mission: MissionConfig,
-): number {
-  if (telemetry.totalDataGenerated <= 0) return 0;
-  const station = getCatalogGroundStation(mission);
-  const contactRatio = station.windowDurationSeconds / station.windowPeriodSeconds;
-  return Math.min(
-    1,
-    (telemetry.totalDownlinkCapacity * station.downlinkMultiplier * contactRatio) /
-      telemetry.totalDataGenerated,
-  );
-}
-
 function selectEvent(
   telemetry: TelemetryMetrics,
   mission: MissionConfig,
 ): FlightEventDefinition {
-  const recoveryRatio = estimateDataRecoveryRatio(telemetry, mission);
+  const recoveryRatio = estimateDataRecoveryRatio(
+    telemetry.totalDataGenerated,
+    telemetry.totalDownlinkCapacity,
+    mission,
+  );
   const trigger: FlightEventDefinition['trigger'] =
     telemetry.powerConsumedKw > telemetry.powerGeneratedKw
       ? 'POWER_DEFICIT'
@@ -74,6 +73,7 @@ export function createLocalFlight(input: {
   mission: MissionConfig;
   modules: ModuleItem[];
   telemetry: TelemetryMetrics;
+  auditWarnings: AuditIssue[];
   role: RoleType;
   startedAt?: number;
 }): LocalFlightState {
@@ -94,6 +94,7 @@ export function createLocalFlight(input: {
     mission: input.mission,
     modules: input.modules,
     telemetry: input.telemetry,
+    auditWarnings: input.auditWarnings,
   };
 }
 
@@ -343,10 +344,8 @@ export function buildLocalReport(
     0,
   );
   const dataRecoveryRatio = estimateDataRecoveryRatio(
-    {
-      totalDataGenerated: dataGeneratedMbps,
-      totalDownlinkCapacity: downlinkMbps,
-    },
+    dataGeneratedMbps,
+    downlinkMbps,
     state.mission,
   );
   const scienceScore =
@@ -401,15 +400,26 @@ export function buildLocalReport(
       recommendations.push(state.activeEvent.recommendation);
     }
   }
-  state.telemetry.warnings.forEach((warning, index) => {
-    rootCauses.push({
-      code: `DESIGN_WARNING_${index + 1}`,
-      title: warning,
-      explanation: state.crisisResolved
-        ? `${warning} La alerta fue gestionada durante el vuelo.`
-        : `${warning} La debilidad de diseño seguía presente al terminar el vuelo.`,
-    });
-  });
+  // La crisis activa ya explica su propia alerta de diseño: solo se añaden las demás.
+  const activeEventWarningCode: Partial<Record<FlightEventDefinition['trigger'], string>> = {
+    POWER_DEFICIT: 'POWER_DEFICIT',
+    STRUCTURAL_STRESS: 'STRUCTURAL_STRESS',
+    LOW_DOWNLINK: 'LOW_DOWNLINK',
+  };
+  for (const warning of state.auditWarnings) {
+    if (
+      (warning.code === 'STRUCTURAL_STRESS' || warning.code === 'POWER_DEFICIT') &&
+      warning.code !== activeEventWarningCode[state.activeEvent.trigger]
+    ) {
+      rootCauses.push({
+        code: warning.code,
+        title: warning.message,
+        explanation: state.crisisResolved
+          ? `${warning.message} La alerta fue gestionada durante el vuelo.`
+          : `${warning.message} La debilidad de diseño seguía presente al terminar el vuelo.`,
+      });
+    }
+  }
   if (rootCauses.length === 0) {
     rootCauses.push({
       code: 'MISSION_OBJECTIVES_MET',

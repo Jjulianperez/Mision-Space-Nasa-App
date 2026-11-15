@@ -37,22 +37,6 @@ export function auditPreLaunch(
   const scienceBaySlotsUsed = selectedModules
     .filter((module) => module.category === 'SCI')
     .reduce((total, module) => total + (module.slotsRequired ?? 1), 0);
-  if (scienceBaySlotsUsed > MAX_SCIENCE_BAY_SLOTS) {
-    blocks.push(issue('SCIENCE_BAY_EXCEEDED', 'La bahía científica supera los 3 espacios disponibles.', 'BLOCK'));
-  }
-
-  const selectedIds = new Set(selectedModules.map((module) => module.id));
-  for (const module of selectedModules) {
-    if (module.requiresModuleId && !selectedIds.has(module.requiresModuleId)) {
-      blocks.push(
-        issue(
-          'MISSING_REQUIRED_MODULE',
-          `${module.name} requiere el módulo ${module.requiresModuleId}.`,
-          'BLOCK',
-        ),
-      );
-    }
-  }
 
   if (telemetry.massPercentage > 90) {
     warnings.push(issue('STRUCTURAL_STRESS', 'Estrés estructural en Max-Q (>90% de masa).', 'WARNING'));
@@ -108,15 +92,20 @@ export function validateModuleProposal(
     if (budgetBlock) {
       throw new Error('La propuesta excede el presupuesto de la misión.');
     }
-    const bayBlock = audit.blocks.find((block) => block.code === 'SCIENCE_BAY_EXCEEDED');
-    if (bayBlock) {
+    const scienceBaySlotsUsed = proposedModules
+      .filter((selected) => selected.category === 'SCI')
+      .reduce((total, selected) => total + (selected.slotsRequired ?? 1), 0);
+    if (scienceBaySlotsUsed > MAX_SCIENCE_BAY_SLOTS) {
       throw new Error('La propuesta supera el límite de 3 espacios de bahía científica.');
     }
-    const requirementBlock = audit.blocks.find(
-      (block) => block.code === 'MISSING_REQUIRED_MODULE',
+    const selectedIds = new Set(proposedModules.map((selected) => selected.id));
+    const moduleMissingRequirement = proposedModules.find(
+      (selected) => selected.requiresModuleId && !selectedIds.has(selected.requiresModuleId),
     );
-    if (requirementBlock) {
-      throw new Error(requirementBlock.message);
+    if (moduleMissingRequirement) {
+      throw new Error(
+        `${moduleMissingRequirement.name} requiere el módulo ${moduleMissingRequirement.requiresModuleId}.`,
+      );
     }
     return;
   }

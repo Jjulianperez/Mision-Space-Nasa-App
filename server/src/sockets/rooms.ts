@@ -7,8 +7,12 @@ import type {
 import { getGroundStationForMission } from '../catalog.js';
 import { FlightLoop, applyFlightAction } from '../flight/loop.js';
 import { generateMissionReport } from '../flight/report.js';
-import { buildAsymmetricFlightPayload, toCrisisAlert } from './asymmetry.js';
-import { RoomService, RoomServiceError } from './room-service.js';
+import {
+  buildAsymmetricFlightPayload,
+  selectCrisisAlertRecipients,
+  toCrisisAlert,
+} from './asymmetry.js';
+import { RoomService, RoomServiceError, toRoomKey } from './room-service.js';
 
 type GameSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
 type GameServer = Server<ClientToServerEvents, ServerToClientEvents>;
@@ -18,7 +22,9 @@ function emitError(socket: GameSocket, error: unknown): void {
     socket.emit('server:error', { code: error.code, message: error.message });
     return;
   }
-  if (error instanceof Error) {
+  // El motor y el vuelo lanzan `Error` planos con mensajes pensados para el jugador.
+  // Cualquier subclase (TypeError, RangeError…) es un fallo interno y no se filtra.
+  if (error instanceof Error && error.constructor === Error) {
     socket.emit('server:error', { code: 'INVALID_REQUEST', message: error.message });
     return;
   }
@@ -39,6 +45,14 @@ function handle(socket: GameSocket, action: () => void | Promise<void>): void {
   })();
 }
 
+/** Los eventos llegan de la red: un cliente puede enviar cualquier cosa como payload. */
+function requirePayload<T>(payload: T): T {
+  if (typeof payload !== 'object' || payload === null) {
+    throw new RoomServiceError('INVALID_PAYLOAD', 'El evento requiere un objeto con datos.');
+  }
+  return payload;
+}
+
 function publishRoomState(io: GameServer, state: RoomState): void {
   // La telemetría completa se comparte en diseño, pero el vuelo usa payloads por rol.
   if (state.phase !== 'FLIGHT') {
@@ -52,10 +66,11 @@ export function registerRoomHandlers(
 ): { roomService: RoomService; stop: () => void } {
   const voteTimers = new Map<string, NodeJS.Timeout>();
   const stopVoteTimer = (roomId: string): void => {
-    const timer = voteTimers.get(roomId.trim().toUpperCase());
+    const roomKey = toRoomKey(roomId);
+    const timer = voteTimers.get(roomKey);
     if (timer) {
       clearTimeout(timer);
-      voteTimers.delete(roomId.trim().toUpperCase());
+      voteTimers.delete(roomKey);
     }
   };
 
@@ -82,11 +97,8 @@ export function registerRoomHandlers(
     onCrisis: (roomId, flight) => {
       const state = roomService.getState(roomId);
       const alert = toCrisisAlert(flight);
-      // La alerta con amenaza y trayectoria se entrega únicamente a Comunicaciones.
-      for (const player of state.players) {
-        if (player.role === 'COMMS') {
-          io.to(player.id).emit('flight:crisis_alert', alert);
-        }
+      for (const player of selectCrisisAlertRecipients(state.players)) {
+        io.to(player.id).emit('flight:crisis_alert', alert);
       }
     },
     onComplete: (roomId, flight) => {
@@ -100,13 +112,45 @@ export function registerRoomHandlers(
 
   const clearRoomTimers = (roomId: string): void => {
     stopVoteTimer(roomId);
-    flightLoop.stop(roomId);
+    flightLoop.stop(toRoomKey(roomId));
+  };
+
+  /**
+   * Saca al socket de las salas en las que participa (salvo `keepRoomKey`).
+   * Un jugador solo puede estar en una partida: sin esto, repetir misión o
+   * desconectarse dejaría salas huérfanas que siguen enviándole su estado.
+   */
+  const detachFromRooms = (socket: GameSocket, keepRoomKey?: string): void => {
+    for (const roomId of socket.rooms) {
+      if (roomId === socket.id || roomId === keepRoomKey) {
+        continue;
+      }
+      try {
+        const state = roomService.leaveRoom(roomId, socket.id);
+        void socket.leave(roomId);
+        if (state) {
+          stopVoteTimer(roomId);
+          publishRoomState(io, state);
+        } else {
+          clearRoomTimers(roomId);
+        }
+      } catch (error) {
+        const expected =
+          error instanceof RoomServiceError &&
+          (error.code === 'ROOM_NOT_FOUND' || error.code === 'PLAYER_NOT_IN_ROOM');
+        if (!expected) {
+          emitError(socket, error);
+        }
+      }
+    }
   };
 
   io.on('connection', (socket) => {
     socket.on('room:create', (payload) =>
       handle(socket, async () => {
-        const state = roomService.createRoom(socket.id, payload);
+        const input = requirePayload(payload);
+        detachFromRooms(socket);
+        const state = roomService.createRoom(socket.id, input);
         await socket.join(state.roomId);
         publishRoomState(io, state);
       }),
@@ -114,7 +158,9 @@ export function registerRoomHandlers(
 
     socket.on('room:join', (payload) =>
       handle(socket, async () => {
-        const state = roomService.joinRoom(socket.id, payload);
+        const input = requirePayload(payload);
+        detachFromRooms(socket, toRoomKey(input.roomId));
+        const state = roomService.joinRoom(socket.id, input);
         await socket.join(state.roomId);
         publishRoomState(io, state);
       }),
@@ -122,26 +168,29 @@ export function registerRoomHandlers(
 
     socket.on('room:leave', (payload) =>
       handle(socket, async () => {
-        const state = roomService.leaveRoom(payload.roomId, socket.id);
-        await socket.leave(payload.roomId.trim().toUpperCase());
-        stopVoteTimer(payload.roomId);
+        const roomKey = toRoomKey(requirePayload(payload).roomId);
+        const state = roomService.leaveRoom(roomKey, socket.id);
+        await socket.leave(roomKey);
         if (state) {
+          stopVoteTimer(roomKey);
           publishRoomState(io, state);
         } else {
-          flightLoop.stop(payload.roomId.trim().toUpperCase());
+          clearRoomTimers(roomKey);
         }
       }),
     );
 
     socket.on('room:start', (payload) =>
       handle(socket, () => {
-        publishRoomState(io, roomService.startDesign(payload.roomId, socket.id));
+        const { roomId } = requirePayload(payload);
+        publishRoomState(io, roomService.startDesign(roomId, socket.id));
       }),
     );
 
     socket.on('role:select', (payload) =>
       handle(socket, () => {
-        const state = roomService.selectRole(payload.roomId, socket.id, payload.role);
+        const { roomId, role } = requirePayload(payload);
+        const state = roomService.selectRole(roomId, socket.id, role);
         publishRoomState(io, state);
         if (state.phase === 'FLIGHT') {
           const player = state.players.find((candidate) => candidate.id === socket.id);
@@ -164,12 +213,8 @@ export function registerRoomHandlers(
 
     socket.on('design:propose_module', (payload) =>
       handle(socket, () => {
-        const result = roomService.proposeModule(
-          payload.roomId,
-          socket.id,
-          payload.moduleId,
-          payload.action,
-        );
+        const { roomId: requestedRoomId, moduleId, action } = requirePayload(payload);
+        const result = roomService.proposeModule(requestedRoomId, socket.id, moduleId, action);
         publishRoomState(io, result.state);
         if (result.vote) {
           const roomId = result.state.roomId;
@@ -193,14 +238,10 @@ export function registerRoomHandlers(
 
     socket.on('design:vote', (payload) =>
       handle(socket, () => {
-        const result = roomService.castVote(
-          payload.roomId,
-          socket.id,
-          payload.voteId,
-          payload.approve,
-        );
+        const { roomId, voteId, approve } = requirePayload(payload);
+        const result = roomService.castVote(roomId, socket.id, voteId, approve);
         if (result.resolved) {
-          stopVoteTimer(payload.roomId);
+          stopVoteTimer(result.state.roomId);
         }
         publishRoomState(io, result.state);
       }),
@@ -208,14 +249,16 @@ export function registerRoomHandlers(
 
     socket.on('mission:launch', (payload) =>
       handle(socket, () => {
-        const { state } = roomService.startFlight(payload.roomId);
+        const { roomId } = requirePayload(payload);
+        const { state } = roomService.startFlight(roomId, socket.id);
         flightLoop.start(state.roomId, state.mission, state.selectedModules, state.telemetry);
       }),
     );
 
     socket.on('flight:action', (payload) =>
       handle(socket, () => {
-        const state = roomService.getState(payload.roomId);
+        const input = requirePayload(payload);
+        const state = roomService.getState(input.roomId);
         const role = state.players.find((candidate) => candidate.id === socket.id)?.role;
         if (!role) {
           throw new RoomServiceError('ROLE_REQUIRED', 'El jugador debe tener un rol para actuar.');
@@ -223,12 +266,13 @@ export function registerRoomHandlers(
         if (state.phase !== 'FLIGHT') {
           throw new RoomServiceError('INVALID_PHASE', 'Las acciones solo están disponibles durante el vuelo.');
         }
-        flightLoop.updateRuntime(payload.roomId, (runtime) =>
+        // El bucle de vuelo se indexa por el código normalizado de la sala, no por el recibido.
+        flightLoop.updateRuntime(state.roomId, (runtime) =>
           applyFlightAction(
             runtime,
             role,
-            payload.actionType,
-            payload.payload,
+            input.actionType,
+            requirePayload(input.payload),
             state.selectedModules,
           ),
         );
@@ -236,24 +280,7 @@ export function registerRoomHandlers(
     );
 
     socket.on('disconnecting', () => {
-      for (const roomId of socket.rooms) {
-        if (roomId === socket.id) {
-          continue;
-        }
-        try {
-          const state = roomService.leaveRoom(roomId, socket.id);
-          if (state) {
-            stopVoteTimer(roomId);
-            publishRoomState(io, state);
-          } else {
-            clearRoomTimers(roomId);
-          }
-        } catch (error) {
-          if (!(error instanceof RoomServiceError) || error.code !== 'ROOM_NOT_FOUND') {
-            emitError(socket, error);
-          }
-        }
-      }
+      detachFromRooms(socket);
     });
   });
 

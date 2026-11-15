@@ -1,3 +1,4 @@
+import { lazy, Suspense, useEffect, useRef, type Ref } from 'react';
 import {
   ArrowRight,
   BadgeCheck,
@@ -19,6 +20,8 @@ import {
 import { ROLE_META, ROLE_ORDER } from '../../lib/roles';
 import { useDesignStore } from '../../store/useDesignStore';
 import { ActionButton, Pill } from '../templates/ConsolePrimitives';
+
+const EarthGlobe3D = lazy(() => import('../flight/EarthGlobe3D'));
 
 const FLOW = [
   {
@@ -74,63 +77,177 @@ const LEVELS = [
   },
 ];
 
-function HeroOrbit() {
+function Orbiter({
+  groupRef,
+  opacity = 1,
+}: {
+  groupRef: Ref<SVGGElement>;
+  opacity?: number;
+}) {
   return (
-    <svg
-      viewBox="0 0 520 420"
-      className="home-orbit-illustration h-full w-full"
-      role="img"
-      aria-label="Esquema orbital de una misión con cuatro segmentos"
-    >
-      <defs>
-        <radialGradient id="home-glow" cx="50%" cy="50%" r="50%">
-          <stop offset="55%" stopColor="#38bdf8" stopOpacity="0.18" />
-          <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id="home-earth" cx="38%" cy="30%" r="75%">
-          <stop offset="0%" stopColor="#155e75" />
-          <stop offset="60%" stopColor="#0c2a3d" />
-          <stop offset="100%" stopColor="#071522" />
-        </radialGradient>
-      </defs>
-      <circle cx="260" cy="215" r="190" fill="url(#home-glow)" />
-      <ellipse cx="260" cy="215" rx="228" ry="92" fill="none" stroke="#38bdf8" strokeOpacity="0.28" strokeDasharray="8 6" />
-      <ellipse cx="260" cy="215" rx="158" ry="64" fill="none" stroke="#818cf8" strokeOpacity="0.35" strokeDasharray="4 6" />
-      <circle cx="260" cy="215" r="88" fill="url(#home-earth)" stroke="#38bdf8" strokeOpacity="0.55" strokeWidth="1.5" />
-      <ellipse cx="260" cy="215" rx="88" ry="24" fill="none" stroke="#38bdf8" strokeOpacity="0.25" />
-      <ellipse cx="260" cy="215" rx="50" ry="88" fill="none" stroke="#38bdf8" strokeOpacity="0.18" />
-      <path d="M196 190 Q222 172 254 184 Q284 194 320 178" fill="none" stroke="#22d3ee" strokeOpacity="0.45" />
-      <path d="M186 236 Q218 220 250 236 Q286 252 326 232" fill="none" stroke="#22d3ee" strokeOpacity="0.3" />
+    <g ref={groupRef} opacity={opacity} transform="translate(421.22 149.95) rotate(21.96)">
+      <rect x="-15" y="-9" width="30" height="18" rx="3" fill="#0b101b" stroke="#38bdf8" strokeWidth="1.6" />
+      <rect x="-39" y="-6" width="20" height="12" rx="2" fill="#0b101b" stroke="#38bdf8" strokeWidth="1.1" />
+      <rect x="19" y="-6" width="20" height="12" rx="2" fill="#0b101b" stroke="#38bdf8" strokeWidth="1.1" />
+      <circle r="2.6" fill="#38bdf8" />
+    </g>
+  );
+}
 
-      <g transform="translate(466 142) rotate(24)">
-        <rect x="-15" y="-9" width="30" height="18" rx="3" fill="#0b101b" stroke="#38bdf8" strokeWidth="1.6" />
-        <rect x="-39" y="-6" width="20" height="12" rx="2" fill="#0b101b" stroke="#38bdf8" strokeWidth="1.1" />
-        <rect x="19" y="-6" width="20" height="12" rx="2" fill="#0b101b" stroke="#38bdf8" strokeWidth="1.1" />
-        <circle r="2.6" fill="#38bdf8" />
-      </g>
+function HeroOrbit() {
+  const satelliteRef = useRef<SVGGElement>(null);
+  const foregroundSatelliteRef = useRef<SVGGElement>(null);
 
-      {[
-        { x: 112, y: 118, icon: Compass, label: 'DIR', color: '#38bdf8' },
-        { x: 402, y: 300, icon: Wrench, label: 'PRO', color: '#f59e0b' },
-        { x: 132, y: 322, icon: FlaskConical, label: 'SCI', color: '#22d3ee' },
-        { x: 414, y: 122, icon: RadioTower, label: 'COM', color: '#10b981' },
-      ].map((node) => (
-        <g key={node.label} transform={`translate(${node.x} ${node.y})`}>
-          <line x1="0" y1="0" x2={(260 - node.x) * 0.58} y2={(215 - node.y) * 0.58} stroke={node.color} strokeOpacity="0.22" strokeDasharray="3 4" />
-          <circle r="18" fill="#0b101b" stroke={node.color} strokeWidth="1.4" />
-          <node.icon x="-8" y="-8" width="16" height="16" color={node.color} aria-hidden="true" />
-          <text x="0" y="34" textAnchor="middle" fill={node.color} fontSize="9" fontFamily="'Space Mono', monospace">
-            {node.label}
-          </text>
+  useEffect(() => {
+    const satellite = satelliteRef.current;
+    const foregroundSatellite = foregroundSatelliteRef.current;
+    if (!satellite || !foregroundSatellite) return;
+
+    const orbitRadiusX = 228;
+    const orbitRadiusY = 92;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const orbitPeriod = reducedMotion ? 72_000 : 48_000;
+    const startAngle = -Math.PI / 4;
+    let elapsed = 0;
+    let previousFrameTime: number | null = null;
+    let frameId = 0;
+
+    const animate = (time: number) => {
+      if (previousFrameTime !== null) {
+        elapsed += Math.min(100, time - previousFrameTime);
+      }
+      previousFrameTime = time;
+
+      const angle = startAngle + (elapsed / orbitPeriod) * Math.PI * 2;
+      const x = 260 + orbitRadiusX * Math.cos(angle);
+      const y = 215 + orbitRadiusY * Math.sin(angle);
+      const tangentAngle =
+        (Math.atan2(orbitRadiusY * Math.cos(angle), -orbitRadiusX * Math.sin(angle)) * 180) /
+        Math.PI;
+      const transform = `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${tangentAngle.toFixed(2)})`;
+      satellite.setAttribute('transform', transform);
+      foregroundSatellite.setAttribute('transform', transform);
+
+      const normalizedAngle = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+      let angleFromBottom = Math.abs(normalizedAngle - Math.PI / 2);
+      if (angleFromBottom > Math.PI) {
+        angleFromBottom = Math.PI * 2 - angleFromBottom;
+      }
+      const fadeStart = 0.52;
+      const fadeEnd = 0.88;
+      const foregroundOpacity = Math.max(
+        0,
+        Math.min(1, (fadeEnd - angleFromBottom) / (fadeEnd - fadeStart)),
+      );
+      foregroundSatellite.setAttribute('opacity', foregroundOpacity.toFixed(3));
+      frameId = window.requestAnimationFrame(animate);
+    };
+
+    frameId = window.requestAnimationFrame(animate);
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
+  return (
+    <div className="home-orbit-illustration relative aspect-[26/21] w-full">
+      <svg
+        viewBox="0 0 520 420"
+        className="absolute inset-0 z-0 h-full w-full"
+        role="img"
+        aria-label="Esquema orbital de una misión con cuatro segmentos"
+      >
+        <defs>
+          <radialGradient id="home-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="55%" stopColor="#38bdf8" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id="home-earth" cx="38%" cy="30%" r="75%">
+            <stop offset="0%" stopColor="#155e75" />
+            <stop offset="60%" stopColor="#0c2a3d" />
+            <stop offset="100%" stopColor="#071522" />
+          </radialGradient>
+        </defs>
+        <circle cx="260" cy="215" r="190" fill="url(#home-glow)" />
+        <ellipse cx="260" cy="215" rx="228" ry="92" fill="none" stroke="#38bdf8" strokeOpacity="0.28" strokeDasharray="8 6" />
+        <ellipse cx="260" cy="215" rx="158" ry="64" fill="none" stroke="#818cf8" strokeOpacity="0.35" strokeDasharray="4 6" />
+        <circle cx="260" cy="215" r="88" fill="url(#home-earth)" stroke="#38bdf8" strokeOpacity="0.55" strokeWidth="1.5" />
+        <ellipse cx="260" cy="215" rx="88" ry="24" fill="none" stroke="#38bdf8" strokeOpacity="0.25" />
+        <ellipse cx="260" cy="215" rx="50" ry="88" fill="none" stroke="#38bdf8" strokeOpacity="0.18" />
+        <path d="M196 190 Q222 172 254 184 Q284 194 320 178" fill="none" stroke="#22d3ee" strokeOpacity="0.45" />
+        <path d="M186 236 Q218 220 250 236 Q286 252 326 232" fill="none" stroke="#22d3ee" strokeOpacity="0.3" />
+
+        <Orbiter groupRef={satelliteRef} />
+
+        {[
+          { x: 112, y: 118, icon: Compass, label: 'DIR', color: '#38bdf8' },
+          { x: 402, y: 300, icon: Wrench, label: 'PRO', color: '#f59e0b' },
+          { x: 132, y: 322, icon: FlaskConical, label: 'SCI', color: '#22d3ee' },
+          { x: 414, y: 122, icon: RadioTower, label: 'COM', color: '#10b981' },
+        ].map((node) => (
+          <g key={node.label} transform={`translate(${node.x} ${node.y})`}>
+            <line x1="0" y1="0" x2={(260 - node.x) * 0.58} y2={(215 - node.y) * 0.58} stroke={node.color} strokeOpacity="0.22" strokeDasharray="3 4" />
+            <circle r="18" fill="#0b101b" stroke={node.color} strokeWidth="1.4" />
+            <node.icon x="-8" y="-8" width="16" height="16" color={node.color} aria-hidden="true" />
+            <text x="0" y="34" textAnchor="middle" fill={node.color} fontSize="9" fontFamily="'Space Mono', monospace">
+              {node.label}
+            </text>
+          </g>
+        ))}
+
+        <g transform="translate(260 358)">
+          <rect x="-22" y="6" width="44" height="6" rx="2" fill="#10b981" opacity="0.85" />
+          <line x1="0" y1="6" x2="0" y2="-10" stroke="#10b981" strokeWidth="1.5" />
+          <path d="M-12 -14 Q0 -26 12 -14" fill="none" stroke="#10b981" strokeWidth="1.5" />
         </g>
-      ))}
+      </svg>
 
-      <g transform="translate(260 358)">
-        <rect x="-22" y="6" width="44" height="6" rx="2" fill="#10b981" opacity="0.85" />
-        <line x1="0" y1="6" x2="0" y2="-10" stroke="#10b981" strokeWidth="1.5" />
-        <path d="M-12 -14 Q0 -26 12 -14" fill="none" stroke="#10b981" strokeWidth="1.5" />
-      </g>
-    </svg>
+      <div className="pointer-events-none absolute left-1/2 top-[51.2%] z-[1] aspect-square w-[39%] max-w-[200px] -translate-x-1/2 -translate-y-1/2">
+        <div className="home-earth-sway h-full w-full">
+          <Suspense fallback={null}>
+            <EarthGlobe3D />
+          </Suspense>
+        </div>
+      </div>
+
+      <svg
+        viewBox="0 0 520 420"
+        className="pointer-events-none absolute inset-0 z-[2] h-full w-full"
+        aria-hidden="true"
+      >
+        <defs>
+          <clipPath id="home-inner-orbit-front-clip">
+            <path d="M170 215 A90 90 0 0 0 350 215 Z" />
+          </clipPath>
+          <clipPath id="home-outer-orbit-front-clip">
+            <path d="M163 215 A97 97 0 0 0 357 215 Z" />
+          </clipPath>
+        </defs>
+        <g clipPath="url(#home-inner-orbit-front-clip)">
+          <ellipse
+            cx="260"
+            cy="215"
+            rx="158"
+            ry="64"
+            fill="none"
+            stroke="#818cf8"
+            strokeOpacity="0.35"
+            strokeDasharray="4 6"
+          />
+        </g>
+        <g clipPath="url(#home-outer-orbit-front-clip)">
+          <ellipse
+            cx="260"
+            cy="215"
+            rx="228"
+            ry="92"
+            fill="none"
+            stroke="#38bdf8"
+            strokeOpacity="0.28"
+            strokeDasharray="8 6"
+          />
+        </g>
+        <Orbiter groupRef={foregroundSatelliteRef} opacity={0} />
+      </svg>
+    </div>
   );
 }
 
@@ -190,16 +307,15 @@ export function HomeScreen({ onStart }: { onStart: () => void }) {
                 Ver cómo funciona
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </a>
-              <ActionButton
-                variant="secondary"
-                style={{ backgroundColor: '#323232' }}
-                className="!border-transparent !text-white hover:!text-primary"
+              <a
+                href="https://github.com/Jjulianperez/Mision-Space-Nasa-App"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded border border-transparent bg-[#323232] px-gutter-lg py-gutter-sm font-label text-label-lg text-white transition-colors hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
               >
-                <a href="https://github.com/Jjulianperez/Mision-Space-Nasa-App" className="flex items-center gap-2">
-                  <Star className="h-4 w-4 text-amber-400" aria-hidden="true" />
-                  Código fuente
-                </a>
-              </ActionButton>
+                <Star className="h-4 w-4 text-amber-400" aria-hidden="true" />
+                Código fuente
+              </a>
             </div>
             <div className="grid grid-cols-2 gap-gutter-sm sm:grid-cols-4">
               {[

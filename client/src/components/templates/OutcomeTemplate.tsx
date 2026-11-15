@@ -216,19 +216,25 @@ export function MissionOutcomeTemplate({
         <div className="grid grid-cols-1 gap-gutter-lg lg:grid-cols-2">
           <Panel className="flex flex-col gap-gutter-md">
             <SectionTitle icon={AlertTriangle}>Auditoría de causa raíz</SectionTitle>
-            <ul className="flex flex-col gap-gutter-sm">
-              {report.rootCauses.map((cause) => (
-                <li
-                  key={cause.code}
-                  className="rounded border border-outline-variant bg-surface-container p-gutter-sm"
-                >
-                  <p className="font-label text-label-lg text-on-surface">{cause.title}</p>
-                  <p className="mt-1 font-body text-body-md text-on-surface-variant">
-                    {cause.explanation}
-                  </p>
-                </li>
-              ))}
-            </ul>
+            {report.rootCauses.length > 0 ? (
+              <ul className="flex flex-col gap-gutter-sm">
+                {report.rootCauses.map((cause) => (
+                  <li
+                    key={cause.code}
+                    className="rounded border border-outline-variant bg-surface-container p-gutter-sm"
+                  >
+                    <p className="font-label text-label-lg text-on-surface">{cause.title}</p>
+                    <p className="mt-1 font-body text-body-md text-on-surface-variant">
+                      {cause.explanation}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="font-body text-body-md text-on-surface-variant">
+                No se registraron causas raíz para esta misión.
+              </p>
+            )}
             {report.recommendations.length > 0 && (
               <div className="rounded border border-warning/30 bg-warning/5 p-gutter-sm">
                 <p className="mb-1 font-label text-label-sm text-warning">Recomendaciones</p>

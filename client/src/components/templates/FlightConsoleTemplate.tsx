@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { GraduationCap, HardHat, Satellite } from 'lucide-react';
 import type { DifficultyMode } from '@shared/types';
@@ -10,6 +10,8 @@ import {
   SectionTitle,
   type MeterTone,
 } from './ConsolePrimitives';
+
+const EarthGlobe3D = lazy(() => import('../flight/EarthGlobe3D'));
 
 export type MinigameId = 'esquivar' | 'paneles' | 'antena';
 
@@ -200,7 +202,11 @@ export function FlightConsoleTemplate({
       />
 
       <main className="flex flex-1 flex-col gap-gutter-lg p-gutter-lg">
-        {crisisBanner}
+        {crisisBanner && (
+          <div className="fixed inset-0 z-30 flex items-center justify-center p-gutter-lg pointer-events-none">
+            <div className="pointer-events-auto w-full max-w-2xl">{crisisBanner}</div>
+          </div>
+        )}
 
         <div className="grid flex-1 grid-cols-1 gap-gutter-lg lg:grid-cols-12">
           <aside className="flex flex-col gap-gutter-md lg:col-span-3">
@@ -280,6 +286,11 @@ export function FlightConsoleTemplate({
 
               <div className="relative flex min-h-[400px] flex-1 flex-col justify-between overflow-hidden rounded border border-outline-variant bg-surface p-gutter-md">
                 <OrbitView progress={safeProgress} mode={mode} />
+                <div className="pointer-events-none absolute left-1/2 top-[49.4%] z-[1] aspect-square w-[min(56%,260px)] -translate-x-1/2 -translate-y-1/2">
+                  <Suspense fallback={null}>
+                    <EarthGlobe3D />
+                  </Suspense>
+                </div>
 
                 <div className="relative z-10 flex flex-wrap items-center justify-between gap-2">
                   <span
@@ -300,15 +311,6 @@ export function FlightConsoleTemplate({
                   >
                     {statusLabel}
                   </span>
-                </div>
-
-                <div
-                  className={cn(
-                    'relative z-10 mx-auto my-auto flex w-full max-w-md flex-col items-center gap-gutter-md rounded-md border bg-surface-container-low/95 p-gutter-lg text-center backdrop-blur',
-                    isApprentice ? 'border-primary/50' : 'border-accent/50',
-                  )}
-                >
-                  {children}
                 </div>
 
                 <div
@@ -363,6 +365,13 @@ export function FlightConsoleTemplate({
             )}
           </section>
         </div>
+
+        <Panel className="flex flex-col gap-gutter-md">
+          <SectionTitle icon={Satellite}>
+            {games.find((game) => game.id === activeGame)?.title ?? 'Consola de vuelo'}
+          </SectionTitle>
+          {children}
+        </Panel>
       </main>
     </div>
   );

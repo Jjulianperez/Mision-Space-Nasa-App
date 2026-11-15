@@ -147,7 +147,7 @@ function CrewPanel({
               key={role}
               type="button"
               aria-pressed={isMe}
-              disabled={!canSwitchRoles || isMe}
+              disabled={isMe || occupied}
               onClick={() => onSelectRole(role)}
               className={cn(
                 'flex flex-col gap-gutter-xs rounded border p-gutter-sm text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary',
@@ -193,7 +193,7 @@ export function LobbyScreen() {
   const missions = useDesignStore((s) => s.missions);
   const mission = useDesignStore((s) => s.mission);
   const localMode = useDesignStore((s) => s.localMode);
-  const connected = useDesignStore((s) => s.connected);
+  const linkStatus = useDesignStore((s) => s.linkStatus);
   const myRole = useDesignStore((s) => s.myRole);
   const playerName = useDesignStore((s) => s.playerName);
   const difficulty = useDesignStore((s) => s.difficulty);
@@ -292,10 +292,10 @@ export function LobbyScreen() {
           section="Registro de misión"
           badge={{ label: 'Nuevo despliegue', icon: Play, tone: 'primary' }}
           status={
-            localMode
-              ? { label: 'Modo local', icon: SignalZero, tone: 'warning' }
-              : connected
-                ? { label: 'Centro de control en línea', icon: Signal, tone: 'success' }
+            linkStatus === 'online'
+              ? { label: 'Centro de control en línea', icon: Signal, tone: 'success' }
+              : linkStatus === 'offline'
+                ? { label: 'Sin conexión · modo local', icon: SignalZero, tone: 'warning' }
                 : { label: 'Conectando…', icon: RadioTower, tone: 'warning' }
           }
           right={

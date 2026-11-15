@@ -7,6 +7,8 @@ export interface RoleMeta {
   label: string;
   shortLabel: string;
   responsibility: string;
+  /** Qué debe conseguir este segmento durante la fase de diseño. */
+  designGoal: string;
   icon: LucideIcon;
 }
 
@@ -16,6 +18,7 @@ export const ROLE_META: Record<RoleType, RoleMeta> = {
     label: 'Director de Misión',
     shortLabel: 'Director',
     responsibility: 'Presupuesto, objetivos científicos y decisiones ejecutivas.',
+    designGoal: 'Equilibrar costes, masa y objetivos científicos; vota las propuestas del equipo.',
     icon: Compass,
   },
   PROPULSION: {
@@ -23,6 +26,7 @@ export const ROLE_META: Record<RoleType, RoleMeta> = {
     label: 'Ing. de Propulsión y Nave',
     shortLabel: 'Propulsión',
     responsibility: 'Estructura, masa, combustible e integridad de la nave.',
+    designGoal: 'Mantener la masa y el riesgo dentro de los límites del lanzador.',
     icon: Wrench,
   },
   SCIENCE: {
@@ -30,6 +34,7 @@ export const ROLE_META: Record<RoleType, RoleMeta> = {
     label: 'Especialista de Ciencia',
     shortLabel: 'Ciencia',
     responsibility: 'Instrumentos, calibración y puntos científicos.',
+    designGoal: 'Alcanzar los puntos científicos objetivo de la misión.',
     icon: FlaskConical,
   },
   COMMS: {
@@ -37,6 +42,7 @@ export const ROLE_META: Record<RoleType, RoleMeta> = {
     label: 'Ing. de Comunicaciones',
     shortLabel: 'Comms',
     responsibility: 'Energía, enlace de datos y ventanas con estaciones terrestres.',
+    designGoal: 'Generar suficiente energía y capacidad de bajada de datos.',
     icon: RadioTower,
   },
 };

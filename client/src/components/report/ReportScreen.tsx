@@ -5,8 +5,11 @@ import { MissionOutcomeTemplate, type OutcomeStat } from '../templates/OutcomeTe
 
 function buildStats(report: MissionReport, mission: MissionConfig | null): OutcomeStat[] {
   const target = mission?.targetSciencePoints ?? 0;
+  const downlinkTarget = mission?.requiredDownlinkRatio;
   const sciencePercent =
     target > 0 ? Math.round((report.sciencePointsEarned / target) * 100) : 0;
+  const meetsDownlinkTarget =
+    downlinkTarget !== undefined && report.dataRecoveryRatio >= downlinkTarget;
 
   return [
     {
@@ -21,18 +24,12 @@ function buildStats(report: MissionReport, mission: MissionConfig | null): Outco
     {
       label: 'Datos recuperados',
       value: `${Math.round(report.dataRecoveryRatio * 100)}%`,
-      note:
-        report.dataRecoveryRatio >= 0.8
-          ? 'Enlace con estación terrestre óptimo'
-          : report.dataRecoveryRatio >= 0.5
-            ? 'Parte de los datos quedó sin bajar'
-            : 'Bajada insuficiente',
-      tone:
-        report.dataRecoveryRatio >= 0.8
-          ? 'success'
-          : report.dataRecoveryRatio >= 0.5
-            ? 'warning'
-            : 'error',
+      note: downlinkTarget === undefined
+        ? 'Umbral de misión no disponible'
+        : meetsDownlinkTarget
+          ? `Cumple el mínimo requerido (${Math.round(downlinkTarget * 100)}%)`
+          : `Por debajo del mínimo requerido (${Math.round(downlinkTarget * 100)}%)`,
+      tone: downlinkTarget === undefined ? 'primary' : meetsDownlinkTarget ? 'success' : 'warning',
     },
     {
       label: 'Crisis en vuelo',

@@ -141,6 +141,7 @@ export function MeterBar({
   tone = 'primary',
   hint,
   mono = false,
+  marks,
   className,
 }: {
   label: string;
@@ -149,6 +150,8 @@ export function MeterBar({
   tone?: MeterTone;
   hint?: string;
   mono?: boolean;
+  /** Posiciones (0-100) de las muescas que señalan umbrales sobre la barra. */
+  marks?: number[];
   className?: string;
 }) {
   const safePercent = Math.max(0, Math.min(100, Number.isFinite(percent) ? percent : 0));
@@ -161,20 +164,32 @@ export function MeterBar({
         )}
       >
         <span className="text-on-surface-variant">{label}</span>
-        <span className={cn('tabular-nums', METER_TEXT[tone])}>{value}</span>
+        <span className={cn('text-right tabular-nums', METER_TEXT[tone])}>{value}</span>
       </div>
       <div
-        className="h-2 overflow-hidden rounded-full bg-surface-container"
+        className="relative h-2 overflow-hidden rounded-full bg-surface-container"
         role="progressbar"
         aria-label={label}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(safePercent)}
+        aria-valuetext={value}
       >
         <div
-          className={cn('h-full rounded-full transition-[width] duration-500', METER_FILL[tone])}
+          className={cn(
+            'h-full rounded-full transition-[width,background-color] duration-500 motion-reduce:transition-none',
+            METER_FILL[tone],
+          )}
           style={{ width: `${safePercent}%` }}
         />
+        {marks?.map((mark) => (
+          <span
+            key={mark}
+            className="absolute inset-y-0 w-0.5 bg-surface-container-low"
+            style={{ left: `${mark}%` }}
+            aria-hidden="true"
+          />
+        ))}
       </div>
       {hint && <span className="font-body text-[11px] leading-tight text-on-surface-variant">{hint}</span>}
     </div>

@@ -118,6 +118,12 @@ export function MissionSetupTemplate({
   const mission = missions.find((item) => item.id === selectedMissionId);
   const story = mission?.story ?? mission?.realNasaReference.summary;
   const progress = (step / (STEPS.length - 1)) * 100;
+  const stepLabel =
+    step < 4
+      ? `Perfil ${step + 1}/4`
+      : step === 4
+        ? 'Misión · 1/2'
+        : 'Confirmación · 2/2';
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -533,10 +539,10 @@ export function MissionSetupTemplate({
                 Prepara tu misión espacial
               </h1>
               <p className="font-body text-body-md text-on-surface-variant">
-                Completa los cuatro pasos, elige un escenario y confirma tu plan antes de abrir el diseño.
+                Completa tu perfil en cuatro pasos; después elige un escenario y confirma el plan antes de abrir el diseño.
               </p>
             </div>
-            <Pill tone="primary" className="shrink-0">Paso {step + 1}/{STEPS.length}</Pill>
+            <Pill tone="primary" className="shrink-0">{stepLabel}</Pill>
           </header>
 
           <div className="h-1.5 overflow-hidden rounded-full bg-outline-variant" role="progressbar" aria-label="Progreso del registro" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}>
