@@ -308,7 +308,6 @@ export function LobbyScreen() {
         <MissionSetupTemplate
           playerName={form.playerName}
           difficulty={form.difficulty}
-          missionId={form.missionId}
           role={form.role}
           gameMode={form.gameMode}
           missions={missions}

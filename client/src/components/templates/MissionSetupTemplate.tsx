@@ -70,7 +70,6 @@ export interface MissionSetupPatch {
 interface MissionSetupTemplateProps {
   playerName: string;
   difficulty: DifficultyMode;
-  missionId: string;
   role: RoleType;
   missions: MissionConfig[];
   gameMode?: GameMode;
@@ -85,7 +84,9 @@ const STEPS = [
   { id: 'mode', label: 'Modo', shortLabel: 'Operación', description: 'Solo o en equipo' },
   { id: 'difficulty', label: 'Dificultad', shortLabel: 'Tipo', description: 'Aprendiz o ingeniero' },
   { id: 'role', label: 'Segmento', shortLabel: 'Rol', description: 'Tu área de mando' },
-  { id: 'commander', label: 'Comandante', shortLabel: 'Despegue', description: 'Nombre y arranque' },
+  { id: 'commander', label: 'Comandante', shortLabel: 'Nombre', description: 'Tu identificación' },
+  { id: 'mission', label: 'Misión', shortLabel: 'Escenario', description: 'Elige el objetivo' },
+  { id: 'confirm', label: 'Confirmación', shortLabel: 'Confirmar', description: 'Revisa tu plan' },
 ] as Array<{ id: string; label: string; shortLabel: string; description: string }>;
 
 function MissionStat({ label, value }: { label: string; value: string }) {
@@ -102,7 +103,6 @@ function MissionStat({ label, value }: { label: string; value: string }) {
 export function MissionSetupTemplate({
   playerName,
   difficulty,
-  missionId,
   role,
   missions,
   gameMode = 'SOLO',
@@ -114,13 +114,14 @@ export function MissionSetupTemplate({
 }: MissionSetupTemplateProps) {
   const [step, setStep] = useState(0);
   const [joinCode, setJoinCode] = useState('');
-  const mission = missions.find((item) => item.id === missionId) ?? missions[0];
+  const [selectedMissionId, setSelectedMissionId] = useState('');
+  const mission = missions.find((item) => item.id === selectedMissionId);
   const story = mission?.story ?? mission?.realNasaReference.summary;
-  const objectives = mission?.objectives ?? [];
   const progress = (step / (STEPS.length - 1)) * 100;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (step !== STEPS.length - 1 || !playerName.trim() || !mission) return;
     if (gameMode === 'TEAM' && joinCode.trim()) {
       onJoin(joinCode.trim());
       return;
@@ -289,12 +290,12 @@ export function MissionSetupTemplate({
           </StepShell>
         );
 
-      default:
+      case 3:
         return (
           <StepShell
             key="commander"
-            title="Comandante, ¿listo para despegar?"
-            subtitle="Tu nombre queda registrado antes de abrir la sala y la mesa de diseño."
+            title="¿Cómo te llamamos?"
+            subtitle="Usaremos este nombre para identificarte en el diseño y en la sala de equipo."
           >
             <label htmlFor="commander-name" className="font-label text-label-lg text-on-surface">
               Nombre del comandante
@@ -313,14 +314,137 @@ export function MissionSetupTemplate({
             />
 
             <div className="rounded border border-primary/20 bg-primary/5 p-gutter-sm">
-              <p className="font-label text-label-sm text-primary">Resumen de despliegue</p>
+              <p className="font-label text-label-sm text-primary">Ya elegiste</p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <SummaryPill>{gameMode === 'SOLO' ? '1 jugador' : '1–4 jugadores'}</SummaryPill>
                 <SummaryPill>{difficulty === 'APPRENTICE' ? 'Aprendiz' : 'Ingeniero'}</SummaryPill>
                 <SummaryPill>{ROLE_META[role].label}</SummaryPill>
-                <SummaryPill>{mission?.title ?? 'Misión'}</SummaryPill>
               </div>
             </div>
+
+            <StepFooter
+              onBack={goBack}
+              onNext={goNext}
+              nextDisabled={!playerName.trim()}
+              nextLabel="Elegir misión"
+            />
+          </StepShell>
+        );
+
+      case 4:
+        return (
+          <StepShell
+            key="mission"
+            title="Elige el objetivo de tu tripulación"
+            subtitle="Compara los escenarios y revisa la historia y los objetivos antes de confirmar."
+          >
+            <div className="flex flex-col gap-gutter-sm" role="group" aria-label="Escenarios de misión">
+              {missions.map((item) => {
+                const selected = selectedMissionId === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      setSelectedMissionId(item.id);
+                      onChange({ missionId: item.id });
+                    }}
+                    className={cn(
+                      'flex items-start gap-gutter-sm rounded-md border p-gutter-sm text-left transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary sm:p-gutter-md',
+                      selected
+                        ? 'border-primary bg-primary/10 shadow-glow'
+                        : 'border-outline-variant bg-surface-container/60 hover:border-primary/50 hover:bg-surface-container-high',
+                    )}
+                  >
+                    <MissionThumbnail mission={item} />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-label text-label-lg text-on-surface">{item.title}</span>
+                        {selected && <BadgeCheck className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />}
+                      </span>
+                      <span className="mt-0.5 block font-mono text-mono-xs uppercase text-primary">
+                        {ORBIT_LABEL[item.orbitType]}
+                      </span>
+                      <span className="mt-2 block font-body text-[12px] leading-relaxed text-on-surface-variant">
+                        {item.story ?? item.realNasaReference.summary}
+                      </span>
+                      <span className="mt-2 flex flex-wrap gap-1.5">
+                        <span className="rounded-full border border-outline-variant bg-surface-container px-2 py-0.5 font-mono text-[10px] text-on-surface-variant">
+                          {item.targetSciencePoints} pts ciencia
+                        </span>
+                        <span className="rounded-full border border-outline-variant bg-surface-container px-2 py-0.5 font-mono text-[10px] text-on-surface-variant">
+                          {Math.round(item.requiredDownlinkRatio * 100)}% datos
+                        </span>
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+              {missions.length === 0 && (
+                <p className="rounded border border-outline-variant bg-surface-container p-gutter-md font-body text-body-md text-on-surface-variant">
+                  No hay misiones disponibles en este momento.
+                </p>
+              )}
+            </div>
+            <StepFooter
+              onBack={goBack}
+              onNext={goNext}
+              nextDisabled={!selectedMissionId}
+              nextLabel="Revisar y confirmar"
+            />
+          </StepShell>
+        );
+
+      default:
+        return (
+          <StepShell
+            key="confirm"
+            title="Confirma tu plan de misión"
+            subtitle="Comprueba tus elecciones. Al confirmar, entrarás al diseño de la nave."
+          >
+            <dl className="grid gap-gutter-sm sm:grid-cols-2">
+              <MissionStat label="Comandante" value={playerName.trim() || 'Sin nombre'} />
+              <MissionStat label="Modo" value={gameMode === 'SOLO' ? 'En solitario' : 'Equipo · 1–4 personas'} />
+              <MissionStat
+                label="Tipo de jugador"
+                value={DIFFICULTIES.find((item) => item.id === difficulty)?.label ?? difficulty}
+              />
+              <MissionStat label="Segmento asignado" value={ROLE_META[role].label} />
+            </dl>
+
+            {mission && (
+              <div className="rounded-md border border-primary/30 bg-primary/5 p-gutter-md">
+                <div className="flex flex-wrap items-start justify-between gap-gutter-sm">
+                  <div>
+                    <p className="font-mono text-mono-xs uppercase tracking-wider text-primary">
+                      Escenario seleccionado
+                    </p>
+                    <h3 className="mt-1 font-headline text-title-md text-on-surface">{mission.title}</h3>
+                    <p className="mt-1 font-mono text-mono-xs text-on-surface-variant">
+                      {ORBIT_LABEL[mission.orbitType]}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={goBack}
+                    className="font-label text-label-sm text-primary hover:underline"
+                  >
+                    Cambiar misión
+                  </button>
+                </div>
+                {mission.objectives && mission.objectives.length > 0 && (
+                  <ul className="mt-gutter-sm flex flex-col gap-1.5">
+                    {mission.objectives.map((objective) => (
+                      <li key={objective} className="flex items-start gap-2 font-body text-[12px] text-on-surface-variant">
+                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-hidden="true" />
+                        {objective}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
             {gameMode === 'TEAM' && (
               <div className="flex flex-col gap-gutter-sm rounded border border-outline-variant bg-surface-container/70 p-gutter-sm">
@@ -339,7 +463,9 @@ export function MissionSetupTemplate({
                   className="w-full rounded border border-outline bg-surface-container px-gutter-md py-gutter-xs font-mono text-mono-sm uppercase tracking-wider text-primary placeholder:text-on-surface-variant focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
                 <p className="font-body text-[11px] text-on-surface-variant">
-                  Déjalo vacío para crear una sala nueva para tu equipo.
+                  {joinCode.trim()
+                    ? 'Al unirte, la configuración de misión y dificultad será la de la persona anfitriona.'
+                    : 'Al crear una sala, podrás invitar a tu tripulación antes de abrir el diseño.'}
                 </p>
               </div>
             )}
@@ -349,6 +475,12 @@ export function MissionSetupTemplate({
                 {error}
               </p>
             )}
+
+            <p className="font-body text-[11px] leading-relaxed text-on-surface-variant">
+              {gameMode === 'SOLO'
+                ? 'Tu sesión individual abrirá el diseño de la nave al confirmar.'
+                : 'La sala de equipo se abrirá primero para que la tripulación se reúna y asigne sus segmentos.'}
+            </p>
 
             <div className="flex flex-col gap-gutter-sm sm:flex-row sm:items-center sm:justify-between">
               <button type="button" onClick={goBack} className="inline-flex items-center gap-1.5 font-label text-label-lg text-on-surface-variant transition-colors hover:text-on-surface">
@@ -361,17 +493,18 @@ export function MissionSetupTemplate({
                 disabled={
                   busy ||
                   !playerName.trim() ||
+                  !mission ||
                   (gameMode === 'TEAM' && Boolean(joinCode.trim()) && joinCode.trim().length < 4)
                 }
                 className="w-full sm:w-auto"
               >
                 {busy
-                  ? 'Preparando sala…'
+                  ? 'Preparando misión…'
                   : gameMode === 'TEAM' && joinCode.trim()
-                    ? 'Unirme a la sala'
+                    ? 'Confirmar y unirme'
                     : gameMode === 'TEAM'
-                      ? 'Crear equipo y comenzar'
-                      : 'Comenzar simulación'}
+                      ? 'Confirmar y crear sala'
+                      : 'Confirmar y abrir diseño'}
               </ActionButton>
             </div>
           </StepShell>
@@ -381,16 +514,26 @@ export function MissionSetupTemplate({
 
   return (
     <main className="flex min-h-screen flex-1 items-center justify-center overflow-y-auto p-gutter-md sm:p-gutter-lg">
-      <section aria-labelledby="setup-title" className="grid w-full max-w-6xl overflow-hidden rounded-md border border-outline-variant bg-surface-container-low shadow-console lg:grid-cols-[1.16fr_0.84fr]">
-        <form className="console-grid flex min-h-[640px] flex-col gap-gutter-md p-gutter-lg" onSubmit={handleSubmit} noValidate>
+      <section
+        aria-labelledby="setup-title"
+        className={cn(
+          'grid w-full overflow-hidden rounded-md border border-outline-variant bg-surface-container-low shadow-console',
+          step >= 4 ? 'max-w-6xl lg:grid-cols-[1.16fr_0.84fr]' : 'max-w-3xl',
+        )}
+      >
+        <form
+          className="console-grid flex min-h-[640px] flex-col gap-gutter-md p-gutter-md sm:p-gutter-lg"
+          onSubmit={handleSubmit}
+          noValidate
+        >
           <header className="flex flex-wrap items-start justify-between gap-gutter-md">
             <div className="flex max-w-lg flex-col gap-gutter-xs">
               <span className="font-mono text-mono-sm text-primary">REGISTRO DE MISIÓN</span>
               <h1 id="setup-title" className="font-headline text-headline-lg text-on-surface text-balance">
-                    Prepara tu misión espacial
+                Prepara tu misión espacial
               </h1>
               <p className="font-body text-body-md text-on-surface-variant">
-                Responde cuatro decisiones operativas. La sala se abre cuando confirmes el despegue.
+                Completa los cuatro pasos, elige un escenario y confirma tu plan antes de abrir el diseño.
               </p>
             </div>
             <Pill tone="primary" className="shrink-0">Paso {step + 1}/{STEPS.length}</Pill>
@@ -400,7 +543,7 @@ export function MissionSetupTemplate({
             <div className="h-full rounded-full bg-gradient-to-r from-primary via-cyan-300 to-secondary transition-all duration-500" style={{ width: `${progress}%` }} />
           </div>
 
-          <ol className="grid grid-cols-4 gap-1" aria-label="Pasos del registro">
+          <ol className="grid grid-cols-3 gap-1 sm:grid-cols-6" aria-label="Pasos del registro">
             {STEPS.map((item, index) => {
               const state = index < step ? 'complete' : index === step ? 'current' : 'pending';
               return (
@@ -428,42 +571,18 @@ export function MissionSetupTemplate({
           </ol>
 
           <div className="flex flex-1 flex-col">{renderStep()}</div>
-
         </form>
 
-        <aside className="flex flex-col gap-gutter-md border-t border-outline-variant bg-[#101725]/90 p-gutter-lg lg:border-l lg:border-t-0" aria-label="Escenario de misión">
+        <aside
+          className={cn(
+            'flex-col gap-gutter-md border-t border-outline-variant bg-surface-container-low p-gutter-md sm:p-gutter-lg lg:border-l lg:border-t-0',
+            step >= 4 ? 'flex' : 'hidden',
+          )}
+          aria-label="Briefing del escenario seleccionado"
+        >
           <SectionTitle icon={Satellite} right={<Pill tone="muted">{missions.length} rutas</Pill>}>
             Briefing de misión
           </SectionTitle>
-          <div className="flex snap-x gap-gutter-sm overflow-x-auto pb-1 lg:flex-col lg:overflow-visible" role="group" aria-label="Selecciona un escenario">
-            {missions.map((item) => {
-              const active = mission?.id === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => onChange({ missionId: item.id })}
-                  className={cn(
-                    'group min-w-44 snap-start rounded border p-gutter-sm text-left transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary',
-                    active
-                      ? 'border-primary bg-primary/10'
-                      : 'border-outline-variant bg-surface-container/60 hover:border-primary/50 hover:bg-surface-container',
-                  )}
-                >
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="font-label text-label-sm text-on-surface">{item.title}</span>
-                    {active && <BadgeCheck className="h-4 w-4 text-primary" aria-hidden="true" />}
-                  </span>
-                  <span className="mt-1 block font-mono text-[10px] uppercase text-primary">{item.orbitType}</span>
-                  <span className="mt-2 block font-body text-[11px] leading-snug text-on-surface-variant">
-                    {item.realNasaReference.missionName} · {item.targetSciencePoints} pts
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
           {mission && (
             <article className="flex flex-col gap-gutter-sm">
               <MissionIllustration mission={mission} className="w-full" />
@@ -509,6 +628,11 @@ export function MissionSetupTemplate({
               </div>
             </article>
           )}
+          {!mission && (
+            <p className="rounded border border-dashed border-outline px-gutter-md py-gutter-lg text-center font-body text-body-md text-on-surface-variant">
+              Elige una misión para ver aquí su historia, objetivos y requisitos.
+            </p>
+          )}
         </aside>
       </section>
     </main>
@@ -537,14 +661,38 @@ function StepShell({
   );
 }
 
+function MissionThumbnail({ mission }: { mission: MissionConfig }) {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  return (
+    <span className="flex h-20 w-24 shrink-0 items-center justify-center overflow-hidden rounded border border-outline-variant bg-surface-container sm:h-24 sm:w-32">
+      {mission.imageUrl && !imageFailed ? (
+        <img
+          src={mission.imageUrl}
+          alt=""
+          loading="lazy"
+          onError={() => setImageFailed(true)}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <Satellite className="h-7 w-7 text-primary/70" aria-hidden="true" />
+      )}
+    </span>
+  );
+}
+
 function StepFooter({
   onBack,
   onNext,
   canGoBack = true,
+  nextDisabled = false,
+  nextLabel = 'Continuar',
 }: {
   onBack?: () => void;
   onNext: () => void;
   canGoBack?: boolean;
+  nextDisabled?: boolean;
+  nextLabel?: string;
 }) {
   return (
     <div className="mt-auto flex items-center justify-between gap-gutter-md border-t border-outline-variant pt-gutter-md">
@@ -556,8 +704,13 @@ function StepFooter({
       ) : (
         <span />
       )}
-      <button type="button" onClick={onNext} className="group inline-flex items-center gap-2 rounded border border-primary/50 bg-primary/15 px-gutter-md py-gutter-sm font-label text-label-lg text-primary transition-all hover:bg-primary hover:text-on-primary">
-        Continuar
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={nextDisabled}
+        className="group inline-flex items-center gap-2 rounded border border-primary/50 bg-primary/15 px-gutter-md py-gutter-sm font-label text-label-lg text-primary transition-all hover:bg-primary hover:text-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary/15 disabled:hover:text-primary"
+      >
+        {nextLabel}
         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
       </button>
     </div>
