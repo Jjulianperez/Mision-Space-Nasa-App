@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   FlaskConical,
   Gauge,
   Handshake,
@@ -264,13 +265,14 @@ function CenterColumn() {
 
   const [resetKey, setResetKey] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(true);
   const resetView = () => setResetKey(key => key + 1);
 
   return (
     <section className="bg-[#090D16] flex flex-col overflow-hidden">
       <div className="shrink-0 border-b border-white/10 bg-[#0F1623]/70 px-3 py-2.5">
         <div className="flex items-center gap-3">
-          {mission?.imageUrl ? (
+          {briefOpen && (mission?.imageUrl ? (
             <img
               src={mission.imageUrl}
               alt={mission.title}
@@ -280,17 +282,17 @@ function CenterColumn() {
             <div className="h-14 w-24 shrink-0 rounded border border-white/10 bg-gradient-to-b from-[#1C2538] to-[#131A29] flex items-center justify-center">
               <Rocket className="h-6 w-6 text-cyan-400/70" aria-hidden="true" />
             </div>
-          )}
+          ))}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className="font-mono text-[10px] uppercase tracking-wider text-cyan-400">Misión</span>
               <span className="font-mono text-[10px] uppercase tracking-wider text-slate-400">· {mission?.orbitType ?? 'LEO'}</span>
             </div>
             <h3 className="font-headline text-headline-md text-white truncate">{mission?.title ?? 'Misión sin designar'}</h3>
-            {mission?.story && (
+            {briefOpen && mission?.story && (
               <p className="font-body text-body-md text-slate-300 mt-0.5 line-clamp-2">{mission.story}</p>
             )}
-            {mission?.objectives && mission.objectives.length > 0 && (
+            {briefOpen && mission?.objectives && mission.objectives.length > 0 && (
               <div className="mt-1.5 flex flex-wrap gap-1">
                 {mission.objectives.map((objective, index) => (
                   <span key={`${objective}-${index}`} className="inline-flex items-center px-1.5 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 font-mono text-mono-xs text-emerald-300">
@@ -300,6 +302,16 @@ function CenterColumn() {
               </div>
             )}
           </div>
+          <button
+            type="button"
+            onClick={() => setBriefOpen(value => !value)}
+            className="shrink-0 self-start rounded border border-white/10 bg-white/5 p-1.5 text-slate-400 transition-colors hover:border-cyan-400/40 hover:text-cyan-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400"
+            aria-expanded={briefOpen}
+            aria-label={briefOpen ? 'Ocultar briefing de misión' : 'Mostrar briefing de misión'}
+            title={briefOpen ? 'Ocultar briefing' : 'Mostrar briefing'}
+          >
+            <ChevronUp className={`h-4 w-4 transition-transform duration-200 ${briefOpen ? '' : 'rotate-180'}`} aria-hidden="true" />
+          </button>
         </div>
       </div>
 
