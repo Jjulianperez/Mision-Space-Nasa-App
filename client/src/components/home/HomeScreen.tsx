@@ -77,7 +77,7 @@ function HeroOrbit() {
   return (
     <svg
       viewBox="0 0 520 420"
-      className="h-full w-full"
+      className="home-orbit-illustration h-full w-full"
       role="img"
       aria-label="Esquema orbital de una misión con cuatro segmentos"
     >
@@ -146,6 +146,24 @@ export function HomeScreen({ onStart }: { onStart: () => void }) {
             MDL EDITION
           </span>
         </div>
+        <nav
+          aria-label="Explorar OrbitaLab"
+          className="order-3 flex w-full items-center gap-1 overflow-x-auto border-t border-outline-variant pt-2 sm:order-none sm:w-auto sm:gap-2 sm:border-0 sm:pt-0"
+        >
+          {[
+            { href: '#como-funciona', label: 'Cómo funciona' },
+            { href: '#segmentos', label: 'Roles' },
+            { href: '#dificultad', label: 'Niveles' },
+          ].map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className="whitespace-nowrap rounded px-2 py-1 font-label text-label-sm text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
         <div className="flex items-center gap-gutter-sm">
           <Pill icon={Sparkles} tone="primary">
             NASA Space Apps 2026
@@ -239,7 +257,7 @@ export function HomeScreen({ onStart }: { onStart: () => void }) {
           </div>
         </section>
 
-        <section className="flex flex-col gap-gutter-lg">
+        <section id="segmentos" className="flex flex-col gap-gutter-lg scroll-mt-8">
           <div className="flex flex-col gap-gutter-xs">
             <span className="font-mono text-mono-sm text-primary">LOS 4 SEGMENTOS NASA</span>
             <h2 className="font-headline text-headline-lg text-on-surface">
@@ -266,7 +284,7 @@ export function HomeScreen({ onStart }: { onStart: () => void }) {
           </div>
         </section>
 
-        <section className="grid grid-cols-1 gap-gutter-lg lg:grid-cols-2">
+        <section id="dificultad" className="grid grid-cols-1 gap-gutter-lg scroll-mt-8 lg:grid-cols-2">
           {LEVELS.map((level) => {
             const Icon = level.icon;
             const isApprentice = level.id === 'APPRENTICE';
