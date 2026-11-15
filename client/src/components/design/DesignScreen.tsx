@@ -180,10 +180,13 @@ function CenterColumn() {
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
   };
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!dragRef.current) return;
-    const dx = e.clientX - dragRef.current.startX;
-    const dy = e.clientY - dragRef.current.startY;
-    setTransform(t => ({ ...t, x: dragRef.current!.origX + dx, y: dragRef.current!.origY + dy }));
+    const drag = dragRef.current;
+    if (!drag) return;
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+    const newX = drag.origX + dx;
+    const newY = drag.origY + dy;
+    setTransform(t => ({ ...t, x: newX, y: newY }));
   };
   const onPointerUp = () => { dragRef.current = null; };
   const onWheel = (e: React.WheelEvent) => {
