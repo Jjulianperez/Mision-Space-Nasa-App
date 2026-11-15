@@ -1,6 +1,7 @@
 export type RoleType = 'DIRECTOR' | 'PROPULSION' | 'SCIENCE' | 'COMMS';
 export type DifficultyMode = 'APPRENTICE' | 'ENGINEER';
 export type GamePhase = 'LOBBY' | 'DESIGN' | 'FLIGHT' | 'REPORT';
+export type GameMode = 'SOLO' | 'TEAM';
 export type ModuleCategory = 'EST' | 'SCI' | 'COM';
 export type ModuleAction = 'ADD' | 'REMOVE';
 export type FlightAct = 'ASCENT_INSERTION' | 'CRISIS' | 'OPERATIONS';
@@ -56,6 +57,12 @@ export interface MissionConfig {
     engineeringLesson: string;
     sourceUrl: string;
   };
+  /** Narrativa breve de la misión para briefing / registro (opcional, MVP). */
+  story?: string;
+  /** URL de arte conceptual o referencia visual de la misión (opcional, MVP). */
+  imageUrl?: string;
+  /** Objetivos que la misión espera alcanzar (ciencia / ingeniería). */
+  objectives?: string[];
 }
 
 export interface GroundStation {
