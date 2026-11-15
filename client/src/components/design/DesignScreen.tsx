@@ -61,12 +61,29 @@ function TopBar() {
   const hardBlock = !audit?.canLaunch;
   const isSolo = localMode || (roomState?.players.length ?? 1) <= 1;
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmTitle, setConfirmTitle] = useState('');
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [confirmTone, setConfirmTone] = useState<'warning' | 'error'>('warning');
+
   const handleLaunch = () => {
     if (hardBlock) {
-      if (!window.confirm('Hay bloqueos duros (masa/presupuesto). ¿Lanzar de todos modos?')) return;
+      setConfirmTitle('Bloqueo duro de lanzamiento');
+      setConfirmMessage('El diseno supera el presupuesto o la masa maxima del lanzador. Deseas lanzar de todos modos asumiendo el riesgo?');
+      setConfirmTone('error');
+      setConfirmOpen(true);
     } else if ((audit?.warnings.length ?? 0) > 0) {
-      if (!window.confirm('Hay alertas de diseño. ¿Continuar con el lanzamiento?')) return;
+      setConfirmTitle('Alertas de diseno activas');
+      setConfirmMessage('El diseno presenta alertas de margen (masa, energia, datos o ciencia). Continuar con el lanzamiento?');
+      setConfirmTone('warning');
+      setConfirmOpen(true);
+    } else {
+      launch();
     }
+  };
+
+  const confirmLaunch = () => {
+    setConfirmOpen(false);
     launch();
   };
 
@@ -81,6 +98,7 @@ function TopBar() {
   };
 
   return (
+    <>
     <header className="h-14 shrink-0 border-b border-white/10 bg-[#0F1623] px-4 flex items-center justify-between gap-4">
       <div className="flex items-center gap-3 min-w-0">
         <Rocket className="h-5 w-5 text-cyan-400 shrink-0" aria-hidden="true" />
@@ -127,6 +145,42 @@ function TopBar() {
         </button>
       </div>
     </header>
+    {confirmOpen && (
+      <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setConfirmOpen(false)}>
+        <div className="w-full max-w-md bg-[#0F1623] border border-white/15 rounded-xl p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="flex items-start gap-3 mb-3">
+            {confirmTone === 'error' ? (
+              <ShieldAlert className="h-6 w-6 text-red-400 shrink-0" aria-hidden="true" />
+            ) : (
+              <AlertTriangle className="h-6 w-6 text-amber-400 shrink-0" aria-hidden="true" />
+            )}
+            <div>
+              <h3 className="text-base font-semibold text-white">{confirmTitle}</h3>
+              <p className="text-sm text-slate-300 mt-1">{confirmMessage}</p>
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end mt-4">
+            <button
+              onClick={() => setConfirmOpen(false)}
+              className="px-4 py-1.5 rounded border border-white/10 bg-white/5 text-sm text-slate-200 hover:bg-white/10 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={confirmLaunch}
+              className={`px-4 py-1.5 rounded text-sm font-semibold transition-colors ${
+                confirmTone === 'error'
+                  ? 'bg-red-500 hover:bg-red-400 text-white'
+                  : 'bg-cyan-500 hover:bg-cyan-400 text-black'
+              }`}
+            >
+              Confirmar lanzamiento
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
