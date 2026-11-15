@@ -8,6 +8,7 @@ import type {
   DifficultyMode,
   FlightActionType,
   FlightCrisisAlert,
+  GameMode,
   GamePhase,
   MissionConfig,
   MissionReport,
@@ -202,6 +203,7 @@ export interface StartMissionInput {
   difficulty: DifficultyMode;
   missionId: string;
   role: RoleType;
+  gameMode?: GameMode;
 }
 
 // ---- Store ----
@@ -210,6 +212,7 @@ interface DesignStore {
   socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
   connected: boolean;
   localMode: boolean;
+  gameMode: GameMode;
   // flow
   showHome: boolean;
   hasRoom: boolean;
@@ -277,6 +280,7 @@ export const useDesignStore = create<DesignStore>()((set, get) => ({
   socket: null,
   connected: false,
   localMode: false,
+  gameMode: 'SOLO',
 
   showHome: true,
   hasRoom: false,
@@ -472,6 +476,7 @@ export const useDesignStore = create<DesignStore>()((set, get) => ({
       flight: null,
       crisisAlert: null,
       report: null,
+      gameMode: input.gameMode ?? 'SOLO',
     });
 
     const socket = get().socket;
@@ -545,6 +550,7 @@ export const useDesignStore = create<DesignStore>()((set, get) => ({
       flight: null,
       crisisAlert: null,
       report: null,
+      gameMode: 'SOLO',
     });
   },
 
@@ -591,6 +597,7 @@ export const useDesignStore = create<DesignStore>()((set, get) => ({
       audit: null,
       activeVote: null,
       mission: null,
+      gameMode: 'SOLO',
     });
   },
 
