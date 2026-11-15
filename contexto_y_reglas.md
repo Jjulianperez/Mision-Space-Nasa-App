@@ -19,7 +19,7 @@
 
 Cuando generes código, componentes o lógica para este proyecto, **DEBES cumplir estas 7 reglas sin excepción**:
 
-1. **Cero Scope Creep Visual (Prohibido 3D pesado o mapas caminables):** No generes motores 3D complejos ni mapas 2D con movimiento de personajes tipo *Among Us*. Todas las visualizaciones espaciales (plano de nave y trayectoria orbital) deben hacerse con **SVG limpio, HTML/CSS o Canvas 2D ligero**.
+1. **Visualizaciones Espaciales (3D permitido para diseño y lanzamiento del cohete):** Se prohíben motores 3D pesados tipo juego y mapas 2D caminables (*Among Us*). Las visualizaciones espaciales (plano de nave y trayectoria orbital) deben hacerse preferentemente con **SVG limpio, HTML/CSS o Canvas 2D ligero**; sin embargo, se **permite** el uso de animaciones 3D ligeras (WebGL/Three.js/React Three Fiber) **exclusivamente para la visualización del cohete en la fase de Diseño y para la secuencia de lanzamiento**, siempre que no bloqueen el flujo principal ni degraden el rendimiento en dispositivos de gama baja. El fallback 2D (SVG) debe mantenerse disponible como alternativa.
 2. **Prohibido Hardcodear Datos de Dominio:** Nunca escribas precios, pesos, consumo eléctrico ($\text{kW}$), descripciones de piezas ni textos de crisis directamente dentro de componentes React o controladores del backend. Todo debe importarse desde archivos JSON estructurados en `/data`.
 3. **Asimetría Obligatoria en Fase de Vuelo:** El servidor es la única autoridad del estado de vuelo. Al emitir el estado durante la fase `FLIGHT`, el backend **debe filtrar el payload según el rol** de cada socket:
    * Solo `COMMS` recibe el mapa de trayectoria, amenazas entrantes y ventanas de descarga.
@@ -36,7 +36,7 @@ Cuando generes código, componentes o lógica para este proyecto, **DEBES cumpli
 ## 3. Arquitectura Técnica (Opción 1: Full-Stack TS + Socket.io)
 
 ### Stack Tecnológico
-* **Frontend:** React 18 + Vite + TypeScript + Tailwind CSS + Zustand + Lucide Icons + SVG/Canvas 2D.
+* **Frontend:** React 18 + Vite + TypeScript + Tailwind CSS + Zustand + Lucide Icons + SVG/Canvas 2D (y animaciones 3D ligeras solo para cohete/lazamiento).
 * **Backend:** Node.js + Express + TypeScript + Socket.io (estado de salas en memoria).
 * **Persistencia Ligera:** JSON estáticos (`/data`) + SQLite (o archivo JSON persistente) para ranking y presets.
 
