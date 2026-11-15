@@ -9,6 +9,7 @@ type DesignModel3DProps = {
   hasCOM: boolean;
   resetKey: number;
   launching?: boolean;
+  onLaunchComplete?: () => void;
   className?: string;
 };
 
@@ -157,7 +158,10 @@ function addSatellite(
 function createRocketScene(
   scene: THREE.Scene,
   materials: ModelMaterials,
-  props: Pick<DesignModel3DProps, 'hasEST' | 'hasSCI' | 'hasCOM' | 'launching'>,
+  props: Pick<
+    DesignModel3DProps,
+    'hasEST' | 'hasSCI' | 'hasCOM' | 'launching' | 'onLaunchComplete'
+  >,
 ): SceneUpdate {
   const grid = new THREE.GridHelper(8, 16, 0x1e293b, 0x0f172a);
   scene.add(grid);
@@ -308,29 +312,33 @@ function createRocketScene(
   scene.add(gantry);
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const ignitionDuration = reducedMotion ? 0.6 : 1.2;
+  const ascentDuration = reducedMotion ? 3.5 : 4.8;
+  const ascentDistance = 8.5;
   let launchTime = 0;
+  let launchComplete = false;
   return (delta) => {
-    if (!props.launching) return;
-
-    if (reducedMotion) {
-      launchFlames.forEach(({ material }) => {
-        material.opacity = 0.78;
-      });
-      return;
-    }
+    if (!props.launching || launchComplete) return;
 
     launchTime += delta;
-    if (launchTime < 0.7) {
-      rocket.position.x = Math.sin(launchTime * 62) * 0.035;
-      rocket.rotation.z = Math.sin(launchTime * 57) * 0.012;
+    if (launchTime < ignitionDuration) {
+      const vibration = reducedMotion ? 0 : 1 - launchTime / ignitionDuration;
+      rocket.position.x = Math.sin(launchTime * 62) * 0.035 * vibration;
+      rocket.rotation.z = Math.sin(launchTime * 57) * 0.012 * vibration;
     } else {
-      const ascent = Math.min(1, (launchTime - 0.7) / 2.2);
-      rocket.position.y = ascent * 6;
-      rocket.position.x = Math.sin(launchTime * 15) * 0.025 * (1 - ascent);
-      rocket.rotation.z = Math.sin(launchTime * 13) * 0.004 * (1 - ascent);
+      const progress = Math.min(1, (launchTime - ignitionDuration) / ascentDuration);
+      const ascent = progress ** 1.8;
+      rocket.position.y = ascent * ascentDistance;
+      rocket.position.x = reducedMotion ? 0 : Math.sin(launchTime * 15) * 0.025 * (1 - ascent);
+      rocket.rotation.z = reducedMotion ? 0 : Math.sin(launchTime * 13) * 0.004 * (1 - ascent);
+
+      if (progress === 1) {
+        launchComplete = true;
+        props.onLaunchComplete?.();
+      }
     }
 
-    const flamePulse = (Math.sin(launchTime * 44) + 1) / 2;
+    const flamePulse = reducedMotion ? 0.35 : (Math.sin(launchTime * 44) + 1) / 2;
     launchFlames.forEach(({ mesh, material }, index) => {
       mesh.scale.y = 0.8 + flamePulse * (index === 1 ? 0.35 : 0.55);
       material.opacity = 0.66 + flamePulse * 0.3;
@@ -638,6 +646,7 @@ export function DesignModel3D({
   hasCOM,
   resetKey,
   launching = false,
+  onLaunchComplete,
   className = 'h-[280px] w-[280px] max-w-full drop-shadow-[0_0_12px_rgba(56,189,248,0.15)]',
 }: DesignModel3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -692,7 +701,12 @@ export function DesignModel3D({
     controls.enableDamping = true;
     controls.dampingFactor = 0.07;
     controls.enablePan = false;
+    controls.enableZoom = !launching;
     controls.rotateSpeed = 0.75;
+    if (launching) {
+      controls.minPolarAngle = 0.25;
+      controls.maxPolarAngle = Math.PI / 2 + 0.12;
+    }
     controls.minDistance = view === 0 ? 4.5 : view === 1 ? 2.8 : 8;
     controls.maxDistance = view === 2 ? 22 : 18;
     controls.target.set(0, view === 0 ? 2.5 : 0, 0);
@@ -708,7 +722,13 @@ export function DesignModel3D({
     const textures: THREE.Texture[] = [];
     let updateScene: SceneUpdate;
     if (view === 0) {
-      updateScene = createRocketScene(scene, materials, { hasEST, hasSCI, hasCOM, launching });
+      updateScene = createRocketScene(scene, materials, {
+        hasEST,
+        hasSCI,
+        hasCOM,
+        launching,
+        onLaunchComplete,
+      });
     } else if (view === 1) {
       updateScene = createOrbiterScene(scene, materials, { hasSCI, hasCOM });
     } else {
@@ -757,7 +777,7 @@ export function DesignModel3D({
       renderer.dispose();
       container.removeChild(renderer.domElement);
     };
-  }, [hasCOM, hasEST, hasSCI, launching, resetKey, view]);
+  }, [hasCOM, hasEST, hasSCI, launching, onLaunchComplete, resetKey, view]);
 
   const labels = ['lanzador', 'orbitador', 'planeta, orbitador y haz de escaneo'];
   return (

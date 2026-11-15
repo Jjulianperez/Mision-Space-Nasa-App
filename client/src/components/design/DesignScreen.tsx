@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   BarChart3,
@@ -47,7 +47,13 @@ const ROLE_SUMMARY: Record<string, { controls: string; objective: string }> = {
   DIRECTOR: { controls: 'Presupuesto y decisiones', objective: 'Equilibrar costes, masa y objetivos científicos.' },
 };
 
-function LaunchSequenceOverlay({ missionName }: { missionName: string }) {
+function LaunchSequenceOverlay({
+  missionName,
+  onComplete,
+}: {
+  missionName: string;
+  onComplete: () => void;
+}) {
   const hasEST = useDesignStore((state) => state.selectedModules.some((module) => module.category === 'EST'));
   const hasSCI = useDesignStore((state) => state.selectedModules.some((module) => module.category === 'SCI'));
   const hasCOM = useDesignStore((state) => state.selectedModules.some((module) => module.category === 'COM'));
@@ -70,7 +76,7 @@ function LaunchSequenceOverlay({ missionName }: { missionName: string }) {
         </p>
         <p className="mt-2 font-headline text-title-md text-white">{missionName}</p>
       </div>
-      <div className="launch-rocket-liftoff absolute bottom-[12%] left-1/2 -translate-x-1/2">
+      <div className="absolute bottom-[12%] left-1/2 -translate-x-1/2">
         <DesignModel3D
           view={0}
           hasEST={hasEST}
@@ -78,6 +84,7 @@ function LaunchSequenceOverlay({ missionName }: { missionName: string }) {
           hasCOM={hasCOM}
           resetKey={0}
           launching
+          onLaunchComplete={onComplete}
           className="h-[420px] w-[360px] max-h-[58vh] max-w-[78vw]"
         />
       </div>
@@ -113,16 +120,10 @@ function TopBar() {
   const [confirmTone, setConfirmTone] = useState<'warning' | 'error'>('warning');
   const [launching, setLaunching] = useState(false);
 
-  useEffect(() => {
-    if (!launching) return;
-
-    const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 900 : 3200;
-    const timeout = window.setTimeout(() => {
-      setLaunching(false);
-      launch();
-    }, duration);
-    return () => window.clearTimeout(timeout);
-  }, [launch, launching]);
+  const completeLaunchSequence = useCallback(() => {
+    setLaunching(false);
+    launch();
+  }, [launch]);
 
   const startLaunchSequence = () => {
     setConfirmOpen(false);
@@ -243,7 +244,12 @@ function TopBar() {
         </div>
       </div>
     )}
-    {launching && <LaunchSequenceOverlay missionName={mission?.title ?? 'Misión espacial'} />}
+    {launching && (
+      <LaunchSequenceOverlay
+        missionName={mission?.title ?? 'Misión espacial'}
+        onComplete={completeLaunchSequence}
+      />
+    )}
     </>
   );
 }
